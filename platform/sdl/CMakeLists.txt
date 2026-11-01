@@ -1,0 +1,8 @@
+add_executable(mbsim main.c)
+target_link_libraries(mbsim PRIVATE mb_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(mbsim PRIVATE SDL2::SDL2)
+else()
+    target_include_directories(mbsim PRIVATE ${SDL2_INCLUDE_DIRS})
+    target_link_libraries(mbsim PRIVATE ${SDL2_LIBRARIES})
+endif()
