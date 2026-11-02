@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  SDL2_VERSION: "2.30.9"
+  PICO_SDK_VERSION: "2.1.1"
+
+jobs:
+  desktop:
+    name: Desktop (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pyyaml pillow
+
+      - name: Install SDL2 (Ubuntu)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libsdl2-dev
+
+      - name: Install SDL2 (Windows, official VC dev package)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $v = "${{ env.SDL2_VERSION }}"
+          Invoke-WebRequest "https://github.com/libsdl-org/SDL/releases/download/release-$v/SDL2-devel-$v-VC.zip" -OutFile "$env:RUNNER_TEMP\sdl2.zip"
+          Expand-Archive "$env:RUNNER_TEMP\sdl2.zip" -DestinationPath "$env:RUNNER_TEMP"
+          "SDL2_DIR=$env:RUNNER_TEMP\SDL2-$v\cmake" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DMB_REQUIRE_SDL=ON
+      - name: Build
+        run: cmake --build build --config Release
+      - name: Test (includes a 2 s headless run of the simulator)
+        run: ctest --test-dir build -C Release --output-on-failure
+
+  sanitizers:
+    name: Sanitizers + soak (Ubuntu)
+    runs-on: ubuntu-latest
+    env:
+      ASAN_OPTIONS: detect_leaks=0  # SDL's video drivers hold allocations until exit
+      UBSAN_OPTIONS: print_stacktrace=1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pyyaml pillow
+      - run: sudo apt-get update && sudo apt-get install -y libsdl2-dev
+      - name: Configure
+        run: >
+          cmake -B build -DCMAKE_BUILD_TYPE=Debug -DMB_REQUIRE_SDL=ON
+          -DCMAKE_C_FLAGS="-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer"
+      - run: cmake --build build
+      - run: ctest --test-dir build --output-on-failure
+      - name: Soak (~25 simulated days per seed at 600x)
+        run: |
+          for seed in 1 2 3; do
+            ./build/mbsnap build/forest.mbp - --seed $seed --speed 600 --sim 3600 --info | tail -n 4
+          done
+
+  firmware:
+    name: Firmware (RP2350)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pyyaml pillow
+      - name: Install ARM toolchain
+        run: >
+          sudo apt-get update && sudo apt-get install -y ninja-build
+          gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib
+      - name: Fetch Pico SDK
+        run: |
+          git clone --depth 1 --branch "$PICO_SDK_VERSION" https://github.com/raspberrypi/pico-sdk.git "$RUNNER_TEMP/pico-sdk"
+          git -C "$RUNNER_TEMP/pico-sdk" submodule update --init --depth 1 lib/tinyusb
+          echo "PICO_SDK_PATH=$RUNNER_TEMP/pico-sdk" >> "$GITHUB_ENV"
+      - name: Build (no RTC)
+        run: |
+          cmake -S platform/rp2350 -B build-rp2350 -G Ninja
+          cmake --build build-rp2350
+      - name: Build (DS3231 RTC)
+        run: |
+          cmake -S platform/rp2350 -B build-rp2350-rtc -G Ninja -DMB_RTC_DS3231=ON
+          cmake --build build-rp2350-rtc
+      - name: Size
+        run: arm-none-eabi-size build-rp2350/microbiome.elf build-rp2350-rtc/microbiome.elf
+      - name: Upload firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: microbiome-firmware
+          path: |
+            build-rp2350/microbiome.uf2
+            build-rp2350-rtc/microbiome.uf2

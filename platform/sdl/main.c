@@ -8,7 +8,11 @@
  *
  * Keys: arrows pan | Z/X = A/B buttons | T cycle time speed (1x/60x/600x)
  *       [ ] hour -/+ | W cycle weather | F1 debug overlay | R reload | Esc quit
+ *
+ * --exit-after S quits after S seconds (CI smoke tests, with SDL_VIDEODRIVER=dummy).
  */
+/* Keep our own main(): otherwise SDL renames it on Windows and needs SDL2main. */
+#define SDL_MAIN_HANDLED
 #include <SDL.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -93,7 +97,7 @@ static bool load_pack(pack_state_t *ps, bool keep_view) {
 
 int main(int argc, char **argv) {
     if (argc < 2) {
-        fprintf(stderr, "usage: mbsim PACK.mbp [--size WxH] [--zoom N] [--seed N]\n");
+        fprintf(stderr, "usage: mbsim PACK.mbp [--size WxH] [--zoom N] [--seed N] [--exit-after S]\n");
         return 2;
     }
     pack_state_t ps = {.path = argv[1]};
@@ -101,6 +105,7 @@ int main(int argc, char **argv) {
                            .seed = (uint32_t)time(NULL), .warmup_s = 90,
                            .host = {.wall_time = host_wall_time}};
     int zoom = 3;
+    uint32_t exit_after_ms = 0;
     for (int i = 2; i + 1 < argc; i += 2) {
         if (!strcmp(argv[i], "--size")) {
             unsigned w, h;
@@ -109,10 +114,13 @@ int main(int argc, char **argv) {
             zoom = atoi(argv[i + 1]);
         } else if (!strcmp(argv[i], "--seed")) {
             ps.cfg.seed = (uint32_t)strtoul(argv[i + 1], NULL, 0);
+        } else if (!strcmp(argv[i], "--exit-after")) {
+            exit_after_ms = (uint32_t)(atof(argv[i + 1]) * 1000.0);
         }
     }
     if (!load_pack(&ps, false)) return 1;
 
+    SDL_SetMainReady();
     if (SDL_Init(SDL_INIT_VIDEO) != 0) { fprintf(stderr, "SDL_Init: %s\n", SDL_GetError()); return 1; }
     int W = ps.cfg.width, H = ps.cfg.height;
     SDL_Window *win = SDL_CreateWindow("microbiome", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
@@ -121,12 +129,13 @@ int main(int argc, char **argv) {
     if (!ren) ren = SDL_CreateRenderer(win, -1, 0);
     SDL_RenderSetLogicalSize(ren, W, H);
     SDL_RenderSetIntegerScale(ren, SDL_TRUE);
-    SDL_Texture *tex = SDL_CreateTexture(ren, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_STREAMING, W, H);
+    SDL_Texture *tex = ren ? SDL_CreateTexture(ren, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_STREAMING, W, H) : NULL;
+    if (!win || !ren || !tex) { fprintf(stderr, "mbsim: SDL setup failed: %s\n", SDL_GetError()); return 1; }
 
     static const uint32_t speeds[] = {1, 60, 600};
     int speed_i = 0, weather = mb_var_find(&eng, "weather"), weather_pin = -1;
     bool overlay = false, running = true;
-    uint32_t last = SDL_GetTicks(), title_ms = 0, reload_ms = 0;
+    uint32_t start = SDL_GetTicks(), last = start, title_ms = 0, reload_ms = 0, frames = 0;
 
     while (running) {
         SDL_Event ev;
@@ -166,6 +175,7 @@ int main(int argc, char **argv) {
 
         uint32_t now = SDL_GetTicks(), dt = now - last;
         last = now;
+        if (exit_after_ms && now - start >= exit_after_ms) running = false;
         mb_engine_update(&eng, dt, in);
 
         /* hot reload when packc rewrites the file */
@@ -215,6 +225,7 @@ int main(int argc, char **argv) {
             SDL_SetRenderDrawColor(ren, 0, 0, 0, 255);
         }
         SDL_RenderPresent(ren);
+        frames++;
 
         if ((title_ms += dt) >= 250) {
             title_ms = 0;
@@ -236,7 +247,8 @@ int main(int argc, char **argv) {
         }
         if (dt < 16) SDL_Delay(16 - dt);
     }
+    if (exit_after_ms) printf("mbsim: ran %u frames, %d actors\n", frames, mb_actor_count(&eng));
     SDL_Quit();
     free(ps.data);
-    return 0;
+    return frames ? 0 : 1;
 }

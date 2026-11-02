@@ -20,15 +20,56 @@ to a compact binary blob that the engine reads in place from flash.
 
 ## Quick start (desktop)
 
-Needs CMake ≥ 3.16, a C compiler, Python 3 with `pyyaml` and `pillow`, and
-SDL2 for the simulator (`apt install libsdl2-dev` / `brew install sdl2`).
+You need CMake ≥ 3.16, a C compiler, Python 3 with PyYAML and Pillow, and
+SDL2 for the simulator. Without SDL2 everything else still builds; CMake
+just skips `mbsim`.
+
+### Ubuntu / Debian
 
 ```sh
-pip install pyyaml pillow
+sudo apt install build-essential cmake libsdl2-dev python3-yaml python3-pil
 cmake -B build && cmake --build build
-./build/mbsim build/forest.mbp            # 320x240 at 3x zoom
+./build/mbsim build/forest.mbp                 # 320x240 at 3x zoom
 ./build/mbsim build/forest.mbp --size 480x480
+ctest --test-dir build
 ```
+
+(On Ubuntu 23.04+ a bare `pip install` is refused, so use the apt packages
+above, or a venv: `python3 -m venv .venv && .venv/bin/pip install pyyaml pillow`,
+then configure with `-DPython3_EXECUTABLE=$PWD/.venv/bin/python`.)
+
+### macOS
+
+```sh
+brew install cmake sdl2 && pip3 install pyyaml pillow
+cmake -B build && cmake --build build && ./build/mbsim build/forest.mbp
+```
+
+### Windows (Visual Studio 2022)
+
+1. Install **Visual Studio 2022** with "Desktop development with C++" (it includes CMake),
+   and **Python 3** from python.org (tick "Add to PATH"). Then `pip install pyyaml pillow`.
+2. Download `SDL2-devel-2.30.x-VC.zip` from the
+   [SDL releases page](https://github.com/libsdl-org/SDL/releases) (**SDL2**, not SDL3) and unzip it,
+   e.g. to `C:\libs\SDL2-2.30.9`.
+3. From a *Developer PowerShell for VS 2022* in the repository:
+
+```powershell
+cmake -B build -DSDL2_DIR=C:\libs\SDL2-2.30.9\cmake
+cmake --build build --config Release
+.\build\Release\mbsim.exe build\forest.mbp
+ctest --test-dir build -C Release
+```
+
+The build copies `SDL2.dll` next to `mbsim.exe` automatically. vcpkg works too:
+`vcpkg install sdl2:x64-windows`, then configure with
+`-DCMAKE_TOOLCHAIN_FILE=<vcpkg>\scripts\buildsystems\vcpkg.cmake` instead of `SDL2_DIR`.
+
+**Alternatively, use WSL2.** On Windows 11, Linux GUI apps display natively,
+so the Ubuntu steps above work unchanged inside WSL, simulator window included.
+
+CI (`.github/workflows/ci.yml`) builds and tests on Ubuntu and Windows, runs a
+sanitizer soak test, and builds the firmware.
 
 | Key | Action |
 | --- | --- |
@@ -61,13 +102,23 @@ python3 tools/packc/packc.py packs/forest -o build/forest.mbp --watch
 
 ## Firmware (RP2350 / Pico 2)
 
+**No toolchain needed to try it:** every CI run uploads a `microbiome-firmware`
+artifact (Actions tab → a run → Artifacts) containing `.uf2` builds with and
+without RTC support. Hold BOOTSEL, plug in the Pico 2, and copy the `.uf2` to the drive.
+
+To build it yourself on Ubuntu (or WSL):
+
 ```sh
+sudo apt install gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib
 git clone -b 2.1.1 https://github.com/raspberrypi/pico-sdk && (cd pico-sdk && git submodule update --init lib/tinyusb)
 export PICO_SDK_PATH=$PWD/pico-sdk
 cmake -S platform/rp2350 -B build-rp2350          # add -DMB_RTC_DS3231=ON if you fit an RTC
 cmake --build build-rp2350
-# hold BOOTSEL, plug in the Pico 2, copy build-rp2350/microbiome.uf2 to the drive
 ```
+
+On native Windows, Raspberry Pi's VS Code "Raspberry Pi Pico" extension
+installs the SDK and toolchain. Point it at `platform/rp2350` (not tested yet;
+WSL and CI are the known-good paths).
 
 Default wiring for a 2.0" 240×320 ST7789V module (all pins in
 `platform/rp2350/board_config.h`):
