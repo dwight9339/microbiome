@@ -7,7 +7,7 @@
  *   mbsim build/forest.mbp [--size 320x240] [--zoom 3] [--seed N]
  *
  * Keys: arrows pan | Z/X = A/B buttons | T cycle time speed (1x/60x/600x)
- *       [ ] hour -/+ | W cycle weather | F1 debug overlay | R reload | Esc quit
+ *       [ ] hour -/+ | W cycle weather | D/F1 debug overlay | R reload | Esc quit
  *
  * --exit-after S quits after S seconds (CI smoke tests, with SDL_VIDEODRIVER=dummy).
  */
@@ -158,6 +158,7 @@ int main(int argc, char **argv) {
                     else mb_var_pin(&eng, weather, weather_pin);
                 }
                 break;
+            case SDLK_d: /* F1 is often taken by the desktop's help shortcut */
             case SDLK_F1: overlay = !overlay; break;
             case SDLK_r: load_pack(&ps, true); break;
             default: break;
