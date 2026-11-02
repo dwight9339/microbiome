@@ -49,6 +49,7 @@ lighting:  {...}
 layers:    [...]
 lanes:     {...}
 places:    {...}
+obstacles: {...}
 actors:    {...}
 spawns:    [...]
 particles: {...}
@@ -171,6 +172,21 @@ places:                                 # points that offer affordances
 `spread` lets visitors pick a spot within ±N px horizontally, so birds don't
 stack on one pixel. Affordance names are free-form (≤ 32 per pack).
 
+## obstacles
+
+```yaml
+obstacles:                              # areas walkers go around, not through
+  pond: {lane: ground, ellipse: [688, 248, 832, 276]}   # box [x0, y0, x1, y1] the ellipse fills
+```
+
+Actors in that lane never pick a wander target or spawn point inside an
+obstacle, and they detour around it (behind or in front) when the direct
+route crosses it. Detours run 2 px outside the box, so leave that much of the
+lane free above or below the obstacle, otherwise it can't be passed.
+A place that sits on the edge, like a drinking spot on the shore, is fine.
+Draw the obstacle and declare it with the same box. Up to 8 per pack, each
+at most 1024 px per side.
+
 ## actors
 
 ```yaml
@@ -256,4 +272,5 @@ changes. The engine holds 256 particles in total.
 ## Limits (engine defaults, see `MB_MAX_*` in `core/include/mb/mb.h`)
 
 32 live actors, 256 particles, 8 particle systems, 16 layers, 64 spawn rules,
-32 variables, 32 tags, 32 affordances, 254 states per actor, 255 colours.
+32 variables, 32 tags, 32 affordances, 254 states per actor, 255 colours,
+8 obstacles.

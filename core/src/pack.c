@@ -25,6 +25,7 @@ static const uint32_t k_elem_size[MB_SEC_COUNT] = {
     [MB_SEC_LANES]     = sizeof(mb_pk_lane_t),
     [MB_SEC_PLACES]    = sizeof(mb_pk_place_t),
     [MB_SEC_PARTICLES] = sizeof(mb_pk_particle_t),
+    [MB_SEC_OBSTACLES] = sizeof(mb_pk_obstacle_t),
     [MB_SEC_BLOB]      = 1,
     [MB_SEC_STRINGS]   = 1,
 };
@@ -62,6 +63,7 @@ static mb_err_t validate(const mb_engine_t *e) {
     CHECK(e->n_vars <= MB_MAX_VARS, MB_ERR_CAPACITY);
     CHECK(e->n_spawns <= MB_MAX_SPAWNS, MB_ERR_CAPACITY);
     CHECK(e->n_psys <= MB_MAX_PSYS, MB_ERR_CAPACITY);
+    CHECK(e->n_obstacles <= MB_MAX_OBSTACLES, MB_ERR_CAPACITY);
     CHECK(e->world->width > 0 && e->world->height > 0, MB_ERR_BAD_SECTION);
 
     for (uint32_t i = 0; i < e->n_images; i++) {
@@ -137,6 +139,13 @@ static mb_err_t validate(const mb_engine_t *e) {
         CHECK(e->psys[i].after_layer == MB_PART_TOP || e->psys[i].after_layer < e->n_layers,
               MB_ERR_BAD_INDEX);
     }
+    for (uint32_t i = 0; i < e->n_obstacles; i++) {
+        const mb_pk_obstacle_t *ob = &e->obstacles[i];
+        CHECK(ob->lane < e->n_lanes && str_ok(e, ob->name_str), MB_ERR_BAD_INDEX);
+        CHECK(ob->shape == MB_OBSTACLE_ELLIPSE && ob->x0 < ob->x1 && ob->y0 < ob->y1, MB_ERR_BAD_SECTION);
+        CHECK(ob->x1 - ob->x0 <= MB_OBSTACLE_MAX_SIZE && ob->y1 - ob->y0 <= MB_OBSTACLE_MAX_SIZE,
+              MB_ERR_BAD_SECTION);
+    }
     for (uint32_t i = 0; i < e->n_palettes; i++)
         CHECK(e->palettes[i].minute < 1440, MB_ERR_BAD_SECTION);
     return MB_OK;
@@ -182,6 +191,7 @@ mb_err_t mb_pack_bind(mb_engine_t *e, const void *pack, size_t size) {
     e->lanes = sec[MB_SEC_LANES];           e->n_lanes = cnt[MB_SEC_LANES];
     e->places = sec[MB_SEC_PLACES];         e->n_places = cnt[MB_SEC_PLACES];
     e->psys = sec[MB_SEC_PARTICLES];        e->n_psys = cnt[MB_SEC_PARTICLES];
+    e->obstacles = sec[MB_SEC_OBSTACLES];   e->n_obstacles = cnt[MB_SEC_OBSTACLES];
     e->blob = sec[MB_SEC_BLOB];             e->blob_size = cnt[MB_SEC_BLOB];
     e->strings = sec[MB_SEC_STRINGS];       e->strings_size = cnt[MB_SEC_STRINGS];
     return validate(e);

@@ -31,6 +31,158 @@ static void lane_y_range(const mb_engine_t *e, const mb_pk_actor_t *ad, int32_t 
     }
 }
 
+/* ---- obstacles -----------------------------------------------------------
+ * Ellipses are tested in doubled, scaled coordinates so everything stays
+ * integer: a point is inside when u^2 + v^2 < r^2 with
+ * u = (2x - x0 - x1) * h, v = (2y - y0 - y1) * w, r = w * h. Obstacle sides are
+ * capped at MB_OBSTACLE_MAX_SIZE, which keeps every product below 2^62. */
+
+#define OB_PAD 2 /* detour corners sit this far outside an obstacle's box */
+#define MAX_NODES (2 + 4 * MB_MAX_OBSTACLES)
+
+/* The edge counts as inside, so paths can't skim along the water's top row. */
+static bool ob_contains(const mb_pk_obstacle_t *ob, int32_t x, int32_t y) {
+    if (x < ob->x0 || x > ob->x1 || y < ob->y0 || y > ob->y1) return false;
+    int64_t w = ob->x1 - ob->x0, h = ob->y1 - ob->y0, r = w * h;
+    int64_t u = (2 * (int64_t)x - ob->x0 - ob->x1) * h, v = (2 * (int64_t)y - ob->y0 - ob->y1) * w;
+    return u * u + v * v <= r * r;
+}
+
+/* Does the segment a-b pass strictly through the ellipse filling the box,
+ * other than at an endpoint? */
+static bool seg_hits_ellipse(int32_t x0, int32_t y0, int32_t x1, int32_t y1,
+                             int32_t ax, int32_t ay, int32_t bx, int32_t by) {
+    if ((ax > bx ? ax : bx) < x0 || (ax < bx ? ax : bx) > x1 || (ay > by ? ay : by) < y0 ||
+        (ay < by ? ay : by) > y1)
+        return false;
+    int64_t w = x1 - x0, h = y1 - y0, r = w * h;
+    int64_t pu = (2 * (int64_t)ax - x0 - x1) * h, pv = (2 * (int64_t)ay - y0 - y1) * w;
+    int64_t du = 2 * (int64_t)(bx - ax) * h, dv = 2 * (int64_t)(by - ay) * w;
+    int64_t len2 = du * du + dv * dv, along = -(pu * du + pv * dv);
+    if (along <= 0 || along >= len2) return false; /* nearest point to the centre is an endpoint */
+    int64_t off = (pu * dv - pv * du) / (int64_t)isqrt64((uint64_t)len2); /* distance from centre */
+    return off * off <= r * r;
+}
+
+/* Does walking straight from a to b cross the obstacle? Endpoints may sit on
+ * the shore, but the rest of the walk keeps 1 px clear of it, so fixed-point
+ * drift along a near-tangent path can't dip in. */
+static bool ob_blocks(const mb_pk_obstacle_t *ob, int32_t ax, int32_t ay, int32_t bx, int32_t by) {
+    return ob_contains(ob, ax, ay) || ob_contains(ob, bx, by) ||
+           seg_hits_ellipse(ob->x0 - 1, ob->y0 - 1, ob->x1 + 1, ob->y1 + 1, ax, ay, bx, by);
+}
+
+static bool in_obstacle(const mb_engine_t *e, uint8_t lane, int32_t x, int32_t y) {
+    for (uint32_t i = 0; i < e->n_obstacles; i++)
+        if (e->obstacles[i].lane == lane && ob_contains(&e->obstacles[i], x, y)) return true;
+    return false;
+}
+
+static bool path_clear(const mb_engine_t *e, uint32_t mask, int32_t ax, int32_t ay, int32_t bx, int32_t by) {
+    for (uint32_t i = 0; i < e->n_obstacles; i++)
+        if ((mask >> i & 1u) && ob_blocks(&e->obstacles[i], ax, ay, bx, by)) return false;
+    return true;
+}
+
+/* Move a point inside the ellipse out to its edge, along the ray from the centre. */
+static void push_out(const mb_pk_obstacle_t *ob, int32_t *x, int32_t *y) {
+    int64_t w = ob->x1 - ob->x0, h = ob->y1 - ob->y0, r = w * h;
+    int64_t X = 2 * (int64_t)*x - ob->x0 - ob->x1, Y = 2 * (int64_t)*y - ob->y0 - ob->y1;
+    uint64_t len = isqrt64((uint64_t)(X * h * X * h + Y * w * Y * w));
+    if (!len) { *y = ob->y0 - 1; return; } /* dead centre: step out behind it */
+    *x = (int32_t)((ob->x0 + ob->x1 + X * r / (int64_t)len) / 2);
+    *y = (int32_t)((ob->y0 + ob->y1 + Y * r / (int64_t)len) / 2);
+    for (int i = 0; i < 8 && ob_contains(ob, *x, *y); i++) { /* rounding */
+        *x += (X > 0) - (X < 0);
+        *y += (Y > 0) - (Y < 0);
+    }
+}
+
+/* Point the actor at the first waypoint of the shortest path to its target.
+ * The graph is the start, the target, and the padded bounding-box corners of
+ * the obstacles in its lane; the actor replans each time it reaches a corner. */
+static void plan_route(mb_engine_t *e, mb_actor_t *a) {
+    const mb_pk_actor_t *ad = def_of(e, a);
+    a->wx = a->tx;
+    a->wy = a->ty;
+    if (ad->lane == MB_NO_LANE || !e->n_obstacles) return;
+
+    /* Plan in whole pixels and walk exactly that line (a sub-pixel offset
+     * could clip an edge the plan just clears). Neither end may be inside an
+     * obstacle: a target there (a drinking spot whose spread reaches into the
+     * pond) moves to the shore, and so does an actor that rounding nudged in. */
+    int32_t sx = a->x >> 8, sy = a->y >> 8, gx = a->tx >> 8, gy = a->ty >> 8;
+    uint32_t mask = 0;
+    for (uint32_t i = 0; i < e->n_obstacles; i++) {
+        const mb_pk_obstacle_t *ob = &e->obstacles[i];
+        if (ob->lane != ad->lane) continue;
+        mask |= 1u << i;
+        if (ob_contains(ob, sx, sy)) push_out(ob, &sx, &sy);
+        if (ob_contains(ob, gx, gy)) push_out(ob, &gx, &gy);
+    }
+    a->x = Q8(sx);
+    a->y = Q8(sy);
+    a->wx = a->tx = Q8(gx);
+    a->wy = a->ty = Q8(gy);
+    if (!mask || path_clear(e, mask, sx, sy, gx, gy)) return;
+
+    int32_t ylo, yhi;
+    lane_y_range(e, ad, &ylo, &yhi);
+    int32_t nx[MAX_NODES], ny[MAX_NODES];
+    int n = 2;
+    nx[0] = sx; ny[0] = sy;
+    nx[1] = gx; ny[1] = gy;
+    for (uint32_t i = 0; i < e->n_obstacles; i++) {
+        if (!(mask >> i & 1u)) continue;
+        const mb_pk_obstacle_t *ob = &e->obstacles[i];
+        for (int c = 0; c < 4; c++) {
+            int32_t cx = c & 1 ? ob->x1 + OB_PAD : ob->x0 - OB_PAD;
+            int32_t cy = c & 2 ? ob->y1 + OB_PAD : ob->y0 - OB_PAD;
+            if (cy < ylo || cy > yhi || (cx == sx && cy == sy)) continue;
+            bool buried = false;
+            for (uint32_t j = 0; j < e->n_obstacles && !buried; j++)
+                buried = (mask >> j & 1u) && ob_contains(&e->obstacles[j], cx, cy);
+            if (buried) continue;
+            nx[n] = cx;
+            ny[n] = cy;
+            n++;
+        }
+    }
+
+    /* Dijkstra; the graph is tiny, so a linear scan for the next node is fine. */
+    uint32_t dist[MAX_NODES];
+    int8_t prev[MAX_NODES];
+    uint64_t done = 0;
+    for (int i = 0; i < n; i++) { dist[i] = UINT32_MAX; prev[i] = -1; }
+    dist[0] = 0;
+    for (;;) {
+        int u = -1;
+        for (int i = 0; i < n; i++)
+            if (!(done >> i & 1u) && dist[i] != UINT32_MAX && (u < 0 || dist[i] < dist[u])) u = i;
+        if (u < 0 || u == 1) break;
+        done |= 1ull << u;
+        for (int v = 1; v < n; v++) {
+            if (done >> v & 1u || !path_clear(e, mask, nx[u], ny[u], nx[v], ny[v])) continue;
+            int64_t dx = nx[v] - nx[u], dy = ny[v] - ny[u];
+            uint32_t d = dist[u] + isqrt64((uint64_t)(dx * dx + dy * dy));
+            if (d < dist[v]) { dist[v] = d; prev[v] = (int8_t)u; }
+        }
+    }
+    if (dist[1] == UINT32_MAX) return; /* boxed in: walk straight rather than freeze */
+    int hop = 1;
+    while (prev[hop] != 0) hop = prev[hop];
+    if (hop != 1) {
+        a->wx = Q8(nx[hop]);
+        a->wy = Q8(ny[hop]);
+    }
+}
+
+static void set_target(mb_engine_t *e, mb_actor_t *a, int32_t tx, int32_t ty) {
+    a->tx = tx;
+    a->ty = ty;
+    plan_route(e, a);
+}
+
 static void pick_wander_target(mb_engine_t *e, mb_actor_t *a) {
     const mb_pk_actor_t *ad = def_of(e, a);
     int32_t w = e->world->width, x = a->x >> 8;
@@ -40,15 +192,20 @@ static void pick_wander_target(mb_engine_t *e, mb_actor_t *a) {
     if (x >= w) { hi = w - margin; lo = mb_clamp(w - margin - 160, margin, w - margin); }
     int32_t ylo, yhi;
     lane_y_range(e, ad, &ylo, &yhi);
-    a->tx = Q8(mb_rand_range(e, lo, hi));
-    a->ty = Q8(mb_rand_range(e, ylo, yhi));
+    for (int tries = 0; tries < 8; tries++) {
+        int32_t tx = mb_rand_range(e, lo, hi), ty = mb_rand_range(e, ylo, yhi);
+        if (!in_obstacle(e, ad->lane, tx, ty)) {
+            set_target(e, a, Q8(tx), Q8(ty));
+            return;
+        }
+    }
+    set_target(e, a, a->x, a->y); /* unlucky: stay put, try again next time */
 }
 
 static void set_exit_target(mb_engine_t *e, mb_actor_t *a, bool go_right) {
     const mb_pk_actor_t *ad = def_of(e, a);
     int32_t off = ad->frame_w + 4;
-    a->tx = go_right ? Q8(e->world->width + off) : Q8(-off);
-    a->ty = a->y;
+    set_target(e, a, go_right ? Q8(e->world->width + off) : Q8(-off), a->y);
 }
 
 static int find_place(mb_engine_t *e, uint32_t aff_mask) {
@@ -81,8 +238,7 @@ static void enter_state(mb_engine_t *e, mb_actor_t *a, uint8_t s) {
         int p = find_place(e, st->move_param);
         if (p >= 0) {
             int32_t sp = e->places[p].spread;
-            a->tx = Q8(e->places[p].x + mb_rand_range(e, -sp, sp));
-            a->ty = Q8(e->places[p].y);
+            set_target(e, a, Q8(e->places[p].x + mb_rand_range(e, -sp, sp)), Q8(e->places[p].y));
         } else {
             pick_wander_target(e, a);
         }
@@ -95,8 +251,7 @@ static void enter_state(mb_engine_t *e, mb_actor_t *a, uint8_t s) {
         set_exit_target(e, a, a->threat_x <= a->x);
         break;
     default: /* idle */
-        a->tx = a->x;
-        a->ty = a->y;
+        set_target(e, a, a->x, a->y);
         if (!a->state_dur_ms) a->state_dur_ms = 5000; /* idle must end eventually */
         break;
     }
@@ -188,8 +343,11 @@ static void spawn_one(mb_engine_t *e, uint16_t rule, int nth) {
         /* fall through */
     case MB_ENTER_ANYWHERE:
         x = mb_rand_range(e, 0, e->world->width - 1);
-        for (int tries = 0; tries < 6 && on_camera(e, x, ad->frame_w); tries++)
+        for (int tries = 0; tries < 8 && (on_camera(e, x, ad->frame_w) || in_obstacle(e, ad->lane, x, y));
+             tries++) {
             x = mb_rand_range(e, 0, e->world->width - 1);
+            y = mb_rand_range(e, ylo, yhi);
+        }
         break;
     default: { /* edge */
         bool right = mb_rand(e) & 1;
@@ -259,17 +417,18 @@ static void check_reactions(mb_engine_t *e, mb_actor_t *a) {
 
 static void move_actor(mb_engine_t *e, mb_actor_t *a, const mb_pk_state_t *st, uint32_t dt_ms) {
     const mb_pk_actor_t *ad = def_of(e, a);
-    int64_t dx = a->tx - a->x, dy = a->ty - a->y;
-    if (!dx && !dy) { a->flags |= MB_AF_ARRIVED; return; }
+    if (a->x == a->tx && a->y == a->ty) { a->flags |= MB_AF_ARRIVED; return; }
+    int64_t dx = a->wx - a->x, dy = a->wy - a->y;
     /* Q8 px per second */
     int64_t speed = (int64_t)ad->speed_q4 * 16 * st->speed_x16 / 16;
     int64_t step = speed * dt_ms / 1000;
     if (step < 1) step = 1;
     uint64_t dist = isqrt64((uint64_t)(dx * dx + dy * dy));
     if (dist <= (uint64_t)step) {
-        a->x = a->tx;
-        a->y = a->ty;
-        a->flags |= MB_AF_ARRIVED;
+        a->x = a->wx;
+        a->y = a->wy;
+        if (a->x == a->tx && a->y == a->ty) a->flags |= MB_AF_ARRIVED;
+        else plan_route(e, a); /* reached a detour corner: on to the next leg */
     } else {
         a->x += (int32_t)(dx * step / (int64_t)dist);
         a->y += (int32_t)(dy * step / (int64_t)dist);

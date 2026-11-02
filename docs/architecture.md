@@ -101,6 +101,9 @@ All of this is driven by pack data:
 - **Places** are points in the world that offer **affordances** (`drink`,
   `perch`, `burrow`...). Actors seek affordances, not specific places, so new
   scenery works with existing animals.
+- **Obstacles** are ellipses in a lane (a pond). Walkers route around them
+  over a tiny visibility graph (start, target, and the corners of each
+  obstacle's box). They follow the first leg and replan at each corner.
 - **Particles**: snow, rain, fireflies and stars. They are world-space but
   wrapped to the viewport width, fade in and out with their condition, and can
   blink, wander and sway.

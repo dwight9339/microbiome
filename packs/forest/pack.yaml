@@ -79,6 +79,11 @@ places:
   burrow:      {at: [381, 248], offers: [burrow]}
   bush:        {at: [905, 238], offers: [hide]}
 
+# Areas walkers go around instead of through. The box matches the pond drawn
+# on the ground layer (tools/placeholder_art.py); update both together.
+obstacles:
+  pond: {lane: ground, ellipse: [688, 248, 832, 276]}
+
 # ---------------------------------------------------------------------------
 # Actors. States are a weighted, randomized state machine; the first state is
 # the initial one. Art faces right unless `faces: left`.

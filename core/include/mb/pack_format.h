@@ -22,7 +22,7 @@
 #endif
 
 #define MB_PACK_MAGIC   0x4B50424Du /* "MBPK" */
-#define MB_PACK_VERSION 1u
+#define MB_PACK_VERSION 2u
 
 enum {
     MB_SEC_WORLD = 0,
@@ -42,6 +42,7 @@ enum {
     MB_SEC_LANES,
     MB_SEC_PLACES,
     MB_SEC_PARTICLES,
+    MB_SEC_OBSTACLES,
     MB_SEC_BLOB,
     MB_SEC_STRINGS,
     MB_SEC_COUNT
@@ -273,6 +274,20 @@ typedef struct {
     uint16_t reserved;
 } mb_pk_place_t;
 
+enum {
+    MB_OBSTACLE_ELLIPSE = 0,  /* ellipse inscribed in the box */
+};
+#define MB_OBSTACLE_MAX_SIZE 1024 /* px per side; keeps the path maths in int64 */
+
+/* An area actors in `lane` walk around (a pond, a boulder). */
+typedef struct {
+    int16_t  x0, y0, x1, y1; /* bounding box, world px, x0 < x1 and y0 < y1 */
+    uint8_t  lane;
+    uint8_t  shape;
+    uint16_t reserved;
+    uint32_t name_str;
+} mb_pk_obstacle_t;
+
 /* ---- particles ---------------------------------------------------------- */
 
 #define MB_PART_BLINK  0x01u
@@ -311,6 +326,7 @@ MB_STATIC_ASSERT(sizeof(mb_pk_var_t) == 20, var);
 MB_STATIC_ASSERT(sizeof(mb_pk_spawn_t) == 16, spawn);
 MB_STATIC_ASSERT(sizeof(mb_pk_lane_t) == 8, lane);
 MB_STATIC_ASSERT(sizeof(mb_pk_place_t) == 16, place);
+MB_STATIC_ASSERT(sizeof(mb_pk_obstacle_t) == 16, obstacle);
 MB_STATIC_ASSERT(sizeof(mb_pk_particle_t) == 24, particle);
 
 #endif /* MB_PACK_FORMAT_H */

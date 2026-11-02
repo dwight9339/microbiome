@@ -25,12 +25,12 @@ except ImportError as exc:  # pragma: no cover
     sys.exit(f"packc needs PyYAML and Pillow: pip install pyyaml pillow ({exc})")
 
 MAGIC = 0x4B50424D
-VERSION = 1
+VERSION = 2
 
 SECTIONS = [
     "world", "palettes", "images", "layers", "anims", "frames", "actors", "states",
     "next", "reactions", "conds", "clauses", "vars", "spawns", "lanes", "places",
-    "particles", "blob", "strings",
+    "particles", "obstacles", "blob", "strings",
 ]
 
 # struct formats (little-endian, no implicit padding) - must match pack_format.h
@@ -54,11 +54,13 @@ FMT = {
     "lanes":     "<hhI",
     "places":    "<hhIIHH",
     "particles": "<HHBBBBhhhhhhB3x",
+    "obstacles": "<hhhhBBHI",
 }
 EXPECTED_SIZES = {
     "world": 32, "palette": 1028, "images": 8, "layers": 16, "anims": 8, "frames": 2,
     "actors": 36, "states": 20, "next": 4, "reactions": 8, "conds": 4, "clauses": 12,
     "vars": 20, "spawns": 16, "lanes": 8, "places": 16, "particles": 24,
+    "obstacles": 16,
 }
 for _k, _v in EXPECTED_SIZES.items():
     assert struct.calcsize(FMT[_k]) == _v, (_k, struct.calcsize(FMT[_k]))
@@ -75,6 +77,8 @@ OPS = {"in": 0, "not": 1, "not_in": 1, "eq": 2, "ne": 3, "lt": 4, "le": 5, "gt":
        "between": 8}
 VAR_CONST, VAR_MINUTE, VAR_HOUR, VAR_MONTH, VAR_DAY, VAR_STEP, VAR_MARKOV = range(7)
 ENTER = {"edge": 0, "place": 1, "anywhere": 2}
+OBSTACLE_ELLIPSE = 0
+OBSTACLE_MAX_SIZE, MAX_OBSTACLES = 1024, 8
 PART_BLINK, PART_WANDER = 0x01, 0x02
 
 
@@ -553,6 +557,32 @@ class Builder:
                                         self.mask(self.affordances, p.get("offers"), "affordance", pw),
                                         self.string(pn), int(p.get("spread", 0)), 0))
 
+        obstacles = spec.get("obstacles") or {}
+        if len(obstacles) > MAX_OBSTACLES:
+            fail("obstacles", f"at most {MAX_OBSTACLES} (have {len(obstacles)})")
+        for on, o in obstacles.items():
+            ow = f"obstacles.{on}"
+            if not isinstance(o, dict) or o.get("lane") not in self.lane_names:
+                fail(ow, f"needs 'lane:' naming a lane (have: {', '.join(self.lane_names)})")
+            box = o.get("ellipse")
+            if not isinstance(box, list) or len(box) != 4:
+                fail(ow, "needs 'ellipse: [x0, y0, x1, y1]' (the box the ellipse fills)")
+            x0, y0, x1, y1 = (int(v) for v in box)
+            if x0 >= x1 or y0 >= y1:
+                fail(ow, "ellipse box needs x0 < x1 and y0 < y1")
+            if x1 - x0 > OBSTACLE_MAX_SIZE or y1 - y0 > OBSTACLE_MAX_SIZE:
+                fail(ow, f"at most {OBSTACLE_MAX_SIZE} px per side")
+            lane = self.lane_names.index(o["lane"])
+            lo, hi = self.rows["lanes"][lane][:2]
+            if y0 - 2 < lo and y1 + 2 > hi:
+                self.warnings.append(f"{ow}: spans the whole '{o['lane']}' lane, so nothing can walk around it")
+            self.rows["obstacles"].append((x0, y0, x1, y1, lane, OBSTACLE_ELLIPSE, 0, self.string(on)))
+            cx, cy, rx, ry = (x0 + x1) / 2, (y0 + y1) / 2, (x1 - x0) / 2, (y1 - y0) / 2
+            for pn, p in (spec.get("places") or {}).items():
+                px, py = p["at"]
+                if ((px - cx) / rx) ** 2 + ((py - cy) / ry) ** 2 < 1:
+                    self.warnings.append(f"places.{pn}: inside obstacle '{on}'; visitors will walk into it")
+
         self.actor_names: list[str] = []
         for an, a in (spec.get("actors") or {}).items():
             self.build_actor(an, a or {})
@@ -700,7 +730,7 @@ def summary(data: bytes, b: Builder) -> str:
     return (f"{len(data) / 1024:.1f} KiB | {len(b.palette)} colours, {n('palettes')} lighting keyframes | "
             f"{n('images')} images ({len(b.blob) / 1024:.1f} KiB pixels) | {n('layers')} layers | "
             f"{n('actors')} actors, {n('states')} states | {n('spawns')} spawn rules | "
-            f"{n('vars')} vars | {n('particles')} particle systems")
+            f"{n('vars')} vars | {n('particles')} particle systems | {n('obstacles')} obstacles")
 
 
 def build_once(pack_dir: str, out: str, quiet=False) -> Builder | None:

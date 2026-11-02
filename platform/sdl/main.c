@@ -222,6 +222,15 @@ int main(int argc, char **argv) {
                 SDL_RenderDrawLine(ren, x0, y0, x1, y0);
                 SDL_RenderDrawLine(ren, x0, y1, x1, y1);
             }
+            SDL_SetRenderDrawColor(ren, 255, 64, 64, 255);
+            for (uint32_t i = 0; i < eng.n_obstacles; i++) {
+                const mb_pk_obstacle_t *ob = &eng.obstacles[i];
+                int x0, y0, x1, y1;
+                mb_world_to_display(&eng, ob->x0, ob->y0, &x0, &y0);
+                mb_world_to_display(&eng, ob->x1, ob->y1, &x1, &y1);
+                SDL_Rect r = {x0, y0, x1 - x0, y1 - y0};
+                SDL_RenderDrawRect(ren, &r);
+            }
             SDL_SetRenderDrawColor(ren, 0, 0, 0, 255);
         }
         SDL_RenderPresent(ren);
