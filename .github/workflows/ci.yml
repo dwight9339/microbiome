@@ -71,7 +71,11 @@ jobs:
           done
 
   wasm:
-    name: WebAssembly
+    name: WebAssembly (Node ${{ matrix.node }})
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["18", "22"]   # 18: the documented minimum; it needs package.json "type": "module"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -81,7 +85,7 @@ jobs:
       - run: pip install pyyaml pillow
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: ${{ matrix.node }}
       - name: Install clang and lld
         run: sudo apt-get update && sudo apt-get install -y clang lld
       - name: Build native mbsnap (the parity reference)
@@ -97,6 +101,7 @@ jobs:
       - name: Size
         run: ls -l build-wasm/web
       - name: Upload web viewer
+        if: matrix.node == '22'
         uses: actions/upload-artifact@v4
         with:
           name: microbiome-web

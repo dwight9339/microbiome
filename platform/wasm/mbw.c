@@ -3,9 +3,10 @@
  *
  * Memory layout above the static data (__heap_base):
  *
- *   [ pack, copied in by JS ][ framebuffer, display w*h RGBA ]
+ *   [ pack, copied in by JS ][ framebuffer, display w*h RGBA ][ JSON out ]
  *
- * Both are (re)placed on each load and linear memory grows as needed. The
+ * All three are (re)placed on each load and linear memory grows as needed
+ * (the JSON area doubles until the document fits). The
  * engine reads the pack in place, so JS must not overwrite it (by calling
  * mbw_pack_buffer) and then keep stepping the old engine: mbw_pack_buffer
  * marks the engine dead until the next successful mbw_init.
@@ -26,6 +27,7 @@ static mb_engine_t eng;
 static bool live;
 static uint32_t pack_size;
 static uint8_t *fb;
+static uint32_t fb_end;    /* offset from heap() just past the framebuffer */
 static uint16_t fb_w, fb_h;
 static bool fb_565;
 
@@ -66,6 +68,7 @@ EXPORT(mbw_init) int mbw_init(uint32_t w, uint32_t h, uint32_t scale, uint32_t s
     uint32_t fb_off = align16(pack_size);
     if (!reserve(fb_off + w * h * 4u)) return MBW_ERR_NO_MEMORY;
     fb = heap() + fb_off;
+    fb_end = fb_off + w * h * 4u;
     fb_w = (uint16_t)w;
     fb_h = (uint16_t)h;
     fb_565 = lcd565 != 0;
@@ -80,6 +83,12 @@ EXPORT(mbw_init) int mbw_init(uint32_t w, uint32_t h, uint32_t scale, uint32_t s
     mb_err_t err = mb_engine_init(&eng, heap(), pack_size, &cfg);
     live = err == MB_OK;
     return (int)err;
+}
+
+/* Drop the engine (e.g. when JS rejects a pack after init). */
+EXPORT(mbw_unload) void mbw_unload(void) {
+    live = false;
+    pack_size = 0;
 }
 
 EXPORT(mbw_err_str) const char *mbw_err_str(int err) {
@@ -154,13 +163,13 @@ EXPORT(mbw_camera_center) void mbw_camera_center(int x, int y) {
 
 /* ---- JSON --------------------------------------------------------------- */
 
-static char json[64 * 1024];
-static uint32_t jn;
+static char *json;
+static uint32_t jn, jcap;
 static bool joverflow;
 
 static void jraw(const char *s) {
     while (*s) {
-        if (jn + 1 >= sizeof json) { joverflow = true; return; }
+        if (jn + 1 >= jcap) { joverflow = true; return; }
         json[jn++] = *s++;
     }
 }
@@ -198,16 +207,28 @@ static void jkey(const char *k) { jstr(k); jraw(":"); }
 static void jbool(bool b) { jraw(b ? "true" : "false"); }
 static void jsep(int i) { if (i) jraw(","); }
 
-static void jbegin(void) { jn = 0; joverflow = false; }
-static const char *jend(void) {
-    json[jn] = '\0';
-    return joverflow ? "{\"error\":\"json buffer overflow\"}" : json;
+/* Runs a writer into the JSON area above the framebuffer, doubling the area
+ * until the document fits. Returns 0 only if memory can't grow. Names in a
+ * pack have no length limit, so neither does the output. */
+static const char *json_build(void (*write)(void)) {
+    if (!live) return "null";
+    uint32_t base = align16(fb_end);
+    for (uint32_t cap = 64u * 1024u; cap <= (1u << 28); cap *= 2u) {
+        if (!reserve(base + cap)) return 0;
+        json = (char *)heap() + base;
+        jcap = cap;
+        jn = 0;
+        joverflow = false;
+        write();
+        if (!joverflow) {
+            json[jn] = '\0';
+            return json;
+        }
+    }
+    return 0;
 }
 
-/* Fixed per load: names, enum labels, display geometry and scene layout. */
-EXPORT(mbw_pack_json) const char *mbw_pack_json(void) {
-    jbegin();
-    if (!live) { jraw("null"); return jend(); }
+static void write_pack_json(void) {
     const mb_engine_t *e = &eng;
     char lbl[64];
     jraw("{"); jkey("name"); jstr(mb_str(e, e->world->name_str));
@@ -291,13 +312,13 @@ EXPORT(mbw_pack_json) const char *mbw_pack_json(void) {
         jint(o->x0); jraw(","); jint(o->y0); jraw(","); jint(o->x1); jraw(","); jint(o->y1); jraw("]}");
     }
     jraw("]}");
-    return jend();
 }
 
-/* Changes every frame: clock, camera, variables, actors, spawn eligibility. */
-EXPORT(mbw_state_json) const char *mbw_state_json(void) {
-    jbegin();
-    if (!live) { jraw("null"); return jend(); }
+/* Fixed per load: names, enum labels, display geometry and scene layout.
+ * "null" without a pack; 0 if out of memory. */
+EXPORT(mbw_pack_json) const char *mbw_pack_json(void) { return json_build(write_pack_json); }
+
+static void write_state_json(void) {
     const mb_engine_t *e = &eng;
     char lbl[64];
     uint16_t year;
@@ -368,5 +389,8 @@ EXPORT(mbw_state_json) const char *mbw_state_json(void) {
         jraw("}");
     }
     jraw("]}");
-    return jend();
 }
+
+/* Changes every frame: clock, camera, variables, actors, spawn eligibility.
+ * "null" without a pack; 0 if out of memory. */
+EXPORT(mbw_state_json) const char *mbw_state_json(void) { return json_build(write_state_json); }

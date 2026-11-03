@@ -1,0 +1,19 @@
+{
+  "name": "@microbiome/engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The microbiome engine core as WebAssembly, with a JS API.",
+  "type": "module",
+  "main": "./microbiome.js",
+  "types": "./microbiome.d.ts",
+  "exports": {
+    ".": {
+      "types": "./microbiome.d.ts",
+      "default": "./microbiome.js"
+    },
+    "./microbiome.wasm": "./microbiome.wasm"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -56,8 +56,9 @@ target_link_options(microbiome PRIVATE
     -Wl,--initial-memory=4194304 -Wl,--stack-first -Wl,-z,stack-size=262144)
 set_target_properties(microbiome PROPERTIES SUFFIX ".wasm" RUNTIME_OUTPUT_DIRECTORY ${WEB_DIR})
 
-# JS wrapper, typings and viewer next to the module.
-foreach(f js/microbiome.js js/microbiome.d.ts web/index.html)
+# JS wrapper, typings, package manifest (marks the folder as ES modules for
+# Node) and viewer next to the module.
+foreach(f js/microbiome.js js/microbiome.d.ts js/package.json web/index.html)
     get_filename_component(_name ${f} NAME)
     configure_file(${f} ${WEB_DIR}/${_name} COPYONLY)
 endforeach()
@@ -66,7 +67,16 @@ endforeach()
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 include(${MB_ROOT}/cmake/packs.cmake)
 mb_add_pack(forest ${MB_ROOT}/packs/forest ${WEB_DIR}/forest.mbp)
-add_custom_target(packs ALL DEPENDS ${WEB_DIR}/forest.mbp)
+# A pack with hostile and very long names, for the tests (not shipped).
+set(STRESS_MBP ${CMAKE_BINARY_DIR}/test/stress.mbp)
+add_custom_command(
+    OUTPUT ${STRESS_MBP}
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/make_stress_pack.py
+            ${MB_ROOT} ${CMAKE_BINARY_DIR}/test/stress ${STRESS_MBP}
+    DEPENDS test/make_stress_pack.py ${MB_ROOT}/tools/packc/packc.py
+    COMMENT "packc: stress test pack"
+    VERBATIM)
+add_custom_target(packs ALL DEPENDS ${WEB_DIR}/forest.mbp ${STRESS_MBP})
 
 # ---- tests -----------------------------------------------------------------
 enable_testing()
@@ -74,7 +84,7 @@ find_program(NODE_EXECUTABLE node)
 set(MB_MBSNAP "" CACHE FILEPATH "Native mbsnap, for the pixel-parity test")
 if(NODE_EXECUTABLE)
     add_test(NAME wasm_smoke
-             COMMAND ${NODE_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/smoke.mjs ${WEB_DIR})
+             COMMAND ${NODE_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/smoke.mjs ${WEB_DIR} ${STRESS_MBP})
     if(MB_MBSNAP)
         add_test(NAME wasm_parity
                  COMMAND ${NODE_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/parity.mjs ${WEB_DIR} ${MB_MBSNAP})

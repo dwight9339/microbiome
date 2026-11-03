@@ -90,8 +90,13 @@ export class Engine {
     new Uint8Array(this.#x.memory.buffer, ptr, bytes.length).set(bytes);
     const err = this.#x.mbw_init(opts.width, opts.height, opts.scale, opts.seed >>> 0, 0, opts.lcd565 ? 1 : 0);
     if (err) throw new MicrobiomeError(err, this.#cstr(this.#x.mbw_err_str(err)));
+    try {
+      this.#info = this.#json(this.#x.mbw_pack_json());
+    } catch (e) {
+      this.#x.mbw_unload(); // never leave an engine running without its info
+      throw e;
+    }
     this.#opts = opts;
-    this.#info = JSON.parse(this.#cstr(this.#x.mbw_pack_json()));
 
     if (prev) {
       this.setDate(prev.date[1], prev.date[2], prev.date[0]);
@@ -141,7 +146,7 @@ export class Engine {
   /** Everything that changes per frame: clock, camera, variables, actors,
    *  spawn-rule eligibility. Arrays are indexed like the matching `info` arrays. */
   state() {
-    return JSON.parse(this.#cstr(this.#x.mbw_state_json()));
+    return this.#json(this.#x.mbw_state_json());
   }
 
   /** Time of day as a minute (0..1439) or "HH:MM". Switches to the simulated clock. */
@@ -196,6 +201,12 @@ export class Engine {
     const idx = this.#info ? this.#info.vars.findIndex((v) => v.name === name) : -1;
     if (idx < 0) throw new MicrobiomeError(-1, `no variable '${name}'`);
     return idx;
+  }
+
+  // The host returns 0 when it can't grow memory to hold the document.
+  #json(ptr) {
+    if (!ptr) throw new MicrobiomeError(101, "out of memory writing engine JSON");
+    return JSON.parse(this.#cstr(ptr));
   }
 
   #cstr(ptr) {

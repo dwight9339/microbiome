@@ -129,4 +129,46 @@ check("bad packs are rejected, not crashed on", () => {
   assert.equal(engine.pixels().length, 320 * 240 * 4);
 });
 
+// Built by test/make_stress_pack.py: hostile and very long names.
+const stressPath = process.argv[3];
+if (stressPath) {
+  const stress = readFileSync(stressPath);
+  const NAMES = ['<img src=x onerror="window.__pwned=1">', 'quote"back\\slash\ttab', "hérisson 🦔"];
+
+  check("names round-trip exactly through the JSON API", () => {
+    const info = engine.load(stress);
+    assert.equal(info.name, '<script>window.__pwned=1</script> "Stress"');
+    assert.deepEqual(info.actors.map((a) => a.name), NAMES);
+    assert.deepEqual(info.spawns.map((s) => s.actor), NAMES);
+    assert.equal(info.layers[0].name, "<u>ground</u>");
+    assert.deepEqual(info.vars.find((v) => v.name === "mood").labels, ["<i>calm</i>", 'say "hi"']);
+    assert.equal(info.actors[0].states.length, 120);
+    assert.ok(info.actors[0].states[7].startsWith('<b>state 7</b> "q" \\ '));
+  });
+
+  check("pack info larger than the initial 64 KiB JSON area", () => {
+    const size = Buffer.byteLength(JSON.stringify(engine.info));
+    assert.ok(size > 64 * 1024, `info is ${size} bytes`);
+    assert.equal(engine.loaded, true);
+  });
+
+  check("per-frame state with long names", () => {
+    for (let i = 0; i < 300; i++) engine.update(100);
+    const s = engine.state();
+    assert.ok(s.actors.length > 0, "stress actors spawned");
+    for (const a of s.actors) {
+      assert.equal(a.name, NAMES[a.type]);
+      assert.equal(a.state, engine.info.actors[a.type].states[a.stateIndex]);
+      assert.equal(a.state.length, 220);
+    }
+    assert.equal(engine.pixels().length, 320 * 240 * 4);
+  });
+}
+
+check("viewer never parses strings as HTML (pack names are untrusted)", () => {
+  const html = readFileSync(join(web, "index.html"), "utf8");
+  for (const sink of ["innerHTML", "outerHTML", "insertAdjacentHTML", "document.write", "createContextualFragment"])
+    assert.ok(!html.includes(sink), `index.html uses ${sink}`);
+});
+
 console.log("wasm smoke: all passed");

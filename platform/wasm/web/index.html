@@ -211,20 +211,39 @@ function updatePanel(state) {
     sel.title = `now: ${v.label}`;
     sel.options[0].text = `auto (${v.label})`;
   }
-  const rows = state.spawns.map((s, i) => {
+  // Names come from the pack, which may be any file someone drops here:
+  // build nodes and set textContent, never parse pack strings as HTML.
+  $("spawns").replaceChildren(...state.spawns.map((s, i) => {
     const why = s.blocked.map((b) => (b === "when" ? `when (${s.failVar})` : b === "cooldown" ? `cooldown ${Math.ceil(s.cooldownMs / 1000)}s` : b));
-    return `<tr><td>${engine.info.spawns[i].actor}</td><td class="n">${s.alive}/${s.max}</td>` +
-      `<td class="${why.length ? "warn" : "ok"}">${why.length ? why.join(", ") : "eligible"}</td></tr>`;
-  });
-  $("spawns").innerHTML = rows.join("");
+    return el("tr", {}, [
+      el("td", {}, engine.info.spawns[i].actor),
+      el("td", { className: "n" }, `${s.alive}/${s.max}`),
+      el("td", { className: why.length ? "warn" : "ok" }, why.length ? why.join(", ") : "eligible"),
+    ]);
+  }));
   $("nextSpawn").textContent = `next spawn roll in ${(state.nextSpawnMs / 1000).toFixed(1)} s · ${state.actors.length} animals`;
   const a = state.actors.find((x) => x.id === selected);
-  $("selected").innerHTML = a
-    ? `<dl><dt>animal</dt><dd>${a.name} #${a.id}</dd><dt>state</dt><dd>${a.state}${a.leaving ? " (leaving)" : ""}</dd>` +
-      `<dt>in state</dt><dd>${(a.stateMs / 1000).toFixed(1)} s${a.stateDurMs ? ` of ${(a.stateDurMs / 1000).toFixed(1)}` : " (until arrival)"}</dd>` +
-      `<dt>feet</dt><dd>${a.x}, ${a.y}</dd><dt>target</dt><dd>${a.target.join(", ")}</dd>` +
-      `<dt>age</dt><dd>${(a.ageMs / 1000).toFixed(0)} s</dd><dt>spawn rule</dt><dd>#${a.spawnRule}</dd></dl>`
-    : "none";
+  if (!a) {
+    $("selected").textContent = "none";
+    return;
+  }
+  const facts = [
+    ["animal", `${a.name} #${a.id}`],
+    ["state", `${a.state}${a.leaving ? " (leaving)" : ""}`],
+    ["in state", `${(a.stateMs / 1000).toFixed(1)} s${a.stateDurMs ? ` of ${(a.stateDurMs / 1000).toFixed(1)}` : " (until arrival)"}`],
+    ["feet", `${a.x}, ${a.y}`],
+    ["target", a.target.join(", ")],
+    ["age", `${(a.ageMs / 1000).toFixed(0)} s`],
+    ["spawn rule", `#${a.spawnRule}`],
+  ];
+  $("selected").replaceChildren(el("dl", {}, facts.flatMap(([k, v]) => [el("dt", {}, k), el("dd", {}, v)])));
+}
+
+function el(tag, props, children) {
+  const node = Object.assign(document.createElement(tag), props);
+  if (typeof children === "string") node.textContent = children;
+  else node.append(...children);
+  return node;
 }
 
 let last = performance.now(), panelMs = 0;
