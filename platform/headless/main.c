@@ -84,6 +84,16 @@ static void print_info(const mb_engine_t *e) {
         mb_actor_info_t ai;
         if (mb_actor_info(e, i, &ai)) printf("  actor %-10s %-10s at %d,%d\n", ai.name, ai.state, ai.x, ai.y);
     }
+    for (int i = 0; i < mb_spawn_count(e); i++) {
+        mb_spawn_info_t si;
+        if (!mb_spawn_info(e, i, &si)) continue;
+        printf("  spawn %-10s %d/%d alive  %s", si.actor, si.alive, si.max_alive, si.blocked ? "blocked:" : "eligible");
+        if (si.blocked & MB_SPAWN_BLOCK_COND) printf(" when(%s)", mb_var_name(e, si.fail_var));
+        if (si.blocked & MB_SPAWN_BLOCK_MAX) printf(" max");
+        if (si.blocked & MB_SPAWN_BLOCK_COOLDOWN) printf(" cooldown(%us)", (unsigned)((si.cooldown_ms + 999) / 1000));
+        if (si.blocked & MB_SPAWN_BLOCK_CAP) printf(" max_actors");
+        printf("\n");
+    }
 }
 
 static int snap(mb_engine_t *e, const char *path) {

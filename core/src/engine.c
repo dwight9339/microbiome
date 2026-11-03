@@ -19,6 +19,19 @@ void mb_camera_center(mb_engine_t *e, int wx, int wy) {
     clamp_camera(e);
 }
 
+void mb_camera_view(const mb_engine_t *e, int *x, int *y, int *w, int *h) {
+    *x = e->cam_x >> 8;
+    *y = e->cam_y >> 8;
+    *w = e->view_w;
+    *h = e->view_h;
+}
+
+void mb_get_date(const mb_engine_t *e, uint16_t *year, uint8_t *month, uint8_t *day) {
+    *year = e->year;
+    *month = e->month;
+    *day = e->mday;
+}
+
 void mb_world_to_display(const mb_engine_t *e, int wx, int wy, int *dx, int *dy) {
     *dx = (wx - (e->cam_x >> 8)) * e->scale;
     *dy = (wy - (e->cam_y >> 8)) * e->scale;

@@ -14,6 +14,26 @@ problem, e.g. `actors.deer.states.drink: unknown anim 'walkk' (have: walk, graze
 
 `packs/forest/pack.yaml` is the worked example. This page is the reference.
 
+## Editor support
+
+`tools/packc/pack.schema.json` is a JSON Schema for `pack.yaml`. Editors that
+understand it give you autocomplete, hover docs, and errors for typos that
+`packc` would silently ignore (`duraton: 4s`). In VS Code, install the Red Hat
+YAML extension and put this comment at the top of the pack (the forest pack
+has it):
+
+```yaml
+# yaml-language-server: $schema=../../tools/packc/pack.schema.json
+```
+
+`python3 tools/packc/check_schema.py packs/<name>` checks a pack from the
+command line (`pip install jsonschema`). `packc` still has the final word:
+the schema can't see cross-references such as a `next` naming a missing
+state, or the 255-colour limit.
+
+When you add a key to `packc`, add it to the schema too. The `pack_schema`
+test fails if a real pack uses a key the schema doesn't know.
+
 ## Art requirements
 
 These are the rules to give an artist, human or agent:

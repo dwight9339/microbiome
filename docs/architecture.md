@@ -32,6 +32,29 @@ Host services are optional callbacks in `mb_host_t`:
 Porting to a new device means writing those few functions plus a display
 driver that can accept strips. Nothing in `core/` changes.
 
+The four hosts in the tree:
+
+| Host | What |
+| --- | --- |
+| `platform/sdl` | `mbsim`, the desktop simulator with hot reload and a debug overlay |
+| `platform/headless` | `mbsnap`: PNGs, panoramas and `--info` dumps for CI, art review and agents |
+| `platform/rp2350` | Pico 2 firmware |
+| `platform/wasm` | The core compiled with `clang --target=wasm32`, freestanding (a six-function libc shim, no Emscripten). `mbw.c` exports a small C API; `microbiome.js` wraps it for browsers and Node. The pack and framebuffer live above `__heap_base` and linear memory grows to fit. Introspection crosses the boundary as JSON. CI checks it renders pixel-identically to `mbsnap`. |
+
+### Introspection
+
+Tools (the simulator overlay, `mbsnap --info`, the web viewer, the planned
+[studio](studio.md)) use read-only queries in `mb.h` instead of poking at
+`mb_engine_t`:
+
+- `mb_actor_info`: name, state, feet, sprite rect, id, target, time in state,
+  age, leaving.
+- `mb_spawn_info`: whether each spawn rule is eligible, and if not, why
+  (`MB_SPAWN_BLOCK_COND` with the failing variable, `_MAX`, `_COOLDOWN`,
+  `_CAP`), plus `mb_spawn_next_tick_ms`.
+- Variables: `mb_var_label`, `mb_var_value_label` (any value's enum label),
+  `mb_var_pinned`; camera: `mb_camera_view`; clock: `mb_day_minute`, `mb_get_date`.
+
 ## Coordinates, scale, and resolution independence
 
 - The **world** is a rectangle in *art pixels* (forest: 1280×300).

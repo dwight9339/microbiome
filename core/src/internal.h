@@ -38,6 +38,7 @@ mb_err_t mb_pack_bind(mb_engine_t *e, const void *pack, size_t size);
 
 /* world.c */
 bool mb_cond(const mb_engine_t *e, uint16_t cond);
+int  mb_cond_fail_var(const mb_engine_t *e, uint16_t cond); /* -1 if it holds */
 void mb_clock_init(mb_engine_t *e);
 void mb_clock_update(mb_engine_t *e, uint32_t dt_ms);
 void mb_vars_update(mb_engine_t *e, bool force);

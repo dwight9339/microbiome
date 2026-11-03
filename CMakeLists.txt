@@ -53,6 +53,16 @@ add_test(NAME render_rgb565_be
          COMMAND mbsnap ${CMAKE_BINARY_DIR}/forest.mbp ${CMAKE_BINARY_DIR}/test-565.png --rgb565 --time 07:00)
 add_test(NAME render_odd_display
          COMMAND mbsnap ${CMAKE_BINARY_DIR}/forest.mbp ${CMAKE_BINARY_DIR}/test-480.png --size 480x480)
+# pack.yaml against the JSON Schema (editors, studio). Optional: needs jsonschema.
+execute_process(COMMAND ${Python3_EXECUTABLE} -c "import jsonschema"
+                RESULT_VARIABLE _mb_no_jsonschema OUTPUT_QUIET ERROR_QUIET)
+if(_mb_no_jsonschema)
+    message(STATUS "jsonschema not installed: skipping the pack schema test (pip install jsonschema)")
+else()
+    add_test(NAME pack_schema
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/packc/check_schema.py
+                     --self-test ${CMAKE_SOURCE_DIR}/packs/forest)
+endif()
 if(TARGET mbsim)
     # Runs the real simulator loop for 2 s without a display (also proves
     # SDL2 is found at runtime, e.g. SDL2.dll next to mbsim.exe on Windows).
