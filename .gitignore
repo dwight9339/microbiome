@@ -3,3 +3,4 @@ build-*/
 *.mbp
 __pycache__/
 .DS_Store
+pico-sdk/
