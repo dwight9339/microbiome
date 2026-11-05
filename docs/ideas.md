@@ -21,8 +21,8 @@ For each idea, capture: **moment a viewer/creator should experience; small test 
 
 ## Anti-scope-creep rule for Christmas 2026
 
-No new idea displaces custom PCB/enclosure, one functional world, reliable firmware, or the minimum Studio creation loop unless the gift owner explicitly approves a trade. "Interesting" is not the same as "needed by December 18."
+No new idea displaces the custom PCB/enclosure, the gift world or reliable firmware. If one seems worth it, it replaces something already planned rather than adding to the list. "Interesting" is not the same as "needed by December 18."
 
 ## Decision log convention
 
-For irreversible architectural choices, add a short note in docs/decisions with: context, options, decision, reasons, consequences, and date. Avoid encoding speculative plans as permanent decisions.
+For irreversible architectural choices, add a short note in `docs/decisions/` (create it with the first one) with: context, options, decision, reasons, consequences, and date. Avoid encoding speculative plans as permanent decisions.

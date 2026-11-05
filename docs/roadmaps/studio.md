@@ -1,54 +1,49 @@
 # Studio Roadmap (draft)
 
-**Product promise:** A creator can make, preview and save a living world visually, using the actual engine.  
-**Shared deadline:** [Gift 2026](../gift-2026.md) — one distinct gift world by Dec 18, 2026.  
-**Links:** [Vision](../vision.md) | [Unified roadmap](../roadmap.md) | [Engine/Firmware](engine-firmware.md) | [Companion](companion.md) | [Detailed Studio concept](../studio.md).
+**Product promise:** a creator can make, preview and save a living world visually, using the actual engine.  
+**Links:** [Vision](../vision.md) | [Unified roadmap](../roadmap.md) | [Gift 2026 dates](../gift-2026.md) | [Engine/Firmware](engine-firmware.md) | [Companion](companion.md) | [Detailed Studio concept](../studio.md) (arrives with PR #2).
 
 ## Baseline
 
-As of Nov 4, Studio's real engine WebAssembly host, introspection API, minimal viewer and schema are implemented on the open studio-phase0 PR. **There is no full authoring application yet.** The existing [longer Studio plan](../studio.md) records architecture and future editor ideas, but the gift slice below takes precedence.
+The WebAssembly engine host, introspection API, a minimal browser viewer (time scrubber, variable pins, debug overlay, click-to-inspect) and the pack schema are on PR #2. For hand-editing, `packc --watch` plus `mbsim`'s hot reload already gives edit → save → see the result in about half a second, and the schema gives editor autocomplete for `pack.yaml`. There is no authoring application yet.
 
-## GIFT 2026 — Desktop-first creator MVP (Now)
+## For the gift: a basic Studio
 
-**One end-to-end task:** create a distinct world from a starter folder -> import/replace PNG art -> edit visually -> save pack.yaml/assets -> compile with existing Python packc -> preview the actual Wasm engine -> build gift firmware using that pack.
+**Why:** a tool for building the gift world faster than editing YAML by hand. The gift doesn't contain Studio; it's judged only by whether it speeds up that world.
 
-| ID | Deliverable | Acceptance evidence | Needs |
-| --- | --- | --- | --- |
-| S-G1 | Runnable desktop-first shell with pack-folder open and recent-folder workflow | Opens a valid local pack folder and shows a live engine preview | Wasm host, desktop file adapter |
-| S-G2 | Minimal **visual editing**: layer ordering/placement, place positions/affordances, basic lane region, basic actor/spawn settings | User edits at least one item of each essential class in UI; reload visibly updates scene; edits can be saved | pack schema + YAML Document handling; E-G2 vocabulary |
-| S-G3 | Manage essential art and preview | Import/replace PNG images or point layer/actor at provided art; view display dimensions/color parity; select/time/weather preview | packc + Wasm, target device profile |
-| S-G4 | Reliable save, compile and error surfacing | Save preserves unrelated YAML fields/comments where feasible; failures are shown with actionable location; reopens unchanged; no silent overwrite of externally modified files | single source format + packc |
-| S-G5 | Gift acceptance workflow | Creator produces one distinct pack (not just changes to the default scene), validates and previews it; known-good build/flash instructions yield device result | Engine E-G1, E-G2–E-G4, gift hardware |
+**What's slow today is positions.** Numbers like spawn chances, state machines, lighting keyframes and weather weights are as quick to edit in YAML as in any UI. Places, lanes, obstacles, perches and layer offsets are coordinates you guess, rebuild and check. The basic Studio fixes that and little else.
 
-**Scope choice:** Tauri desktop first; no Pyodide browser compiler prerequisite. The minimum UI need not expose every advanced field. A clearly labeled YAML source view is an acceptable escape hatch; the core visual operations above must be genuinely usable.
+| ID | Deliverable | Done when |
+| --- | --- | --- |
+| S-G1 | **Local dev server** (Python): serves the Wasm viewer for a pack folder, reruns packc when a source file changes, pushes the new pack so the viewer reloads in place (camera, clock and pins kept) | Saving `pack.yaml` or a PNG in any editor updates the browser within a second or so |
+| S-G2 | **Error banner**: packc errors and schema problems shown in the page, with whatever location packc reports | A broken `pack.yaml` shows a readable error instead of a stale or blank scene |
+| S-G3 | **Edit overlay** in the viewer: draws places, lanes and obstacles over the scene, shows world coordinates under the cursor, lets you drag them | Places, lanes and obstacles can be moved by dragging |
+| S-G4 | **Save back to YAML** with ruamel.yaml round-tripping: the server rewrites only the coordinate values that changed | A drag saves into `pack.yaml` with comments, ordering and other formatting intact; `git diff` shows only the moved numbers |
+| S-G5 | **Gift use**: the gift world is laid out with it | The world's layout was built in Studio; everything else edited in YAML |
 
-**Non-goals for gift:** full node-graph actor editor, polished sprite-sheet composer, full light-keyframe timeline, palette manager, cloud collaboration, online gallery, web parity, arbitrary worlds/hardware, device firmware updater.
+The viewer's existing time and weather controls cover checking the scene at dusk or in rain. Art needs no import feature: put PNGs in `art/` and the server rebuilds.
 
-## Timing and build strategy
+**Fallback:** if S-G1 to S-G4 aren't working by the [gift plan's Studio gate](../gift-2026.md#week-by-week), build the world with YAML + `packc --watch` + `mbsim` and finish Studio after Christmas.
 
-- **By Nov 13:** open pack -> preview real engine -> first visual change; test compiler link from the actual desktop app.
-- **By Nov 20:** edited place/layer round-trips through save/compile; visible errors.
-- **By Nov 27:** actor/spawn settings editable; generate the selected new world from the app end-to-end.
-- **By Dec 4:** gift world on physical device, revised using Studio; freeze authoring scope and fix bugs through Dec 11.
-- **Dec 11–18:** no new editor features; use tool to polish and re-verify gift world while hardware is assembled.
+**Not for the gift:** a desktop shell (Tauri), layer/actor/spawn editing forms, PNG import, a recent-folders workflow, undo/redo, a behaviour graph, a sprite-sheet editor, a lighting timeline, browser-side compiling (Pyodide), device flashing.
 
-## Post-gift sequence (Planned)
+## After the gift (Planned)
 
-1. **Robust viewer and workspace:** live time/date/weather scrubbing, actor picking, debug overlay, safe hot reload, undo/redo, file watching and multi-pack projects.
-2. **Scene/canvas editing:** layers, navigable surfaces, transitions, lanes, places, obstacles, affordance access and occupancy; avoid hardwiring UI to today's single-lane engine model.
-3. **Behavior editing:** state-machine graph, weighted conditions, actor individuality/variation, spawn rule eligibility and deterministic scenario inspector.
-4. **Assets/lighting/budgets:** sprite sheets, animations by surface/locomotion, palette tools, keyframe timeline, flash/actor limits and validated device profiles.
-5. **Broader delivery:** optional browser build (Pyodide spike before commitment), starter templates, exporting versioned worlds, **Send to Companion** hand-off.
+1. **Workspace:** undo/redo, a pack-folder picker, multi-pack projects, safe handling of files changed outside Studio.
+2. **Scene editing:** layers, navigable surfaces, transitions, affordance access and occupancy; avoid hard-wiring the UI to today's single-lane model.
+3. **Behaviour editing:** state-machine graph, weighted conditions, actor variation, spawn eligibility and a deterministic scenario inspector.
+4. **Assets, lighting and budgets:** sprite sheets, animations by surface/locomotion, palettes, a keyframe timeline, flash/actor limits per device profile.
+5. **Packaging:** decide between a desktop shell (Tauri) and staying browser + local server; optional hosted browser build (Pyodide spike first); starter templates; versioned export; **Send to Companion**.
 
 ## Cross-track ownership
 
-- **Engine** owns behavior, physics/navigation contracts, pack versions and real rendering.
-- **Studio** owns creation and authoring UX, validation feedback, source asset changes and export.
-- **Companion** owns device discovery, configuration, firmware updates, independent pack installation and marketplace/library. Studio should share APIs/handoff, **not** duplicate updater or USB stack.
+- **Engine** owns behaviour, navigation contracts, pack versions and real rendering.
+- **Studio** owns authoring UX, validation feedback, source-file changes and export.
+- **Companion** owns device discovery, configuration, firmware updates, pack installation and the world library. Studio hands off to it and does **not** duplicate the updater or USB stack.
 
-## Risks and first principles
+## Principles
 
-- The hardest early commitment is lossless/safe YAML editing. Use a comment-preserving parser, verify round-trips with real packs, and add backups or conflict prompts.
-- Avoid overcommitting to deeply bespoke editor widgets while movement/terrain schemas may evolve.
-- Keep one compiler (Python packc) and one preview implementation (actual Wasm core).
-- Evaluate usability against one first-time world-making task, not the number of editor controls implemented.
+- Safe YAML editing comes first: round-trip with ruamel.yaml, verify on real packs, and never silently overwrite a file changed outside Studio.
+- One compiler (Python packc) and one preview implementation (the real Wasm core).
+- Don't build elaborate widgets for schemas that are about to change (movement, terrain).
+- Judge Studio by how fast a world gets built, not by how many controls it has.

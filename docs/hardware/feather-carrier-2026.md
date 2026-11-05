@@ -1,7 +1,7 @@
 # Gift 2026 — Feather RP2350 Carrier Board (draft)
 
-**Status:** Proposed hardware plan as of Nov 4, 2026. Confirm the exact Feather variant, prototype component models and wiring, display module, and battery/power decisions **before layout/fabrication**.  
-**Milestone:** [Gift 2026](../gift-2026.md) — assembled and tested by Friday, December 18, 2026.  
+**Status:** proposed hardware plan. Confirm the exact Feather variant, prototype component models and wiring, display module, and battery/power decisions **before layout/fabrication**.  
+**Milestone and dates:** [Gift 2026](../gift-2026.md).  
 **Track:** [Engine & Firmware](../roadmaps/engine-firmware.md).
 
 ## Intended architecture
@@ -51,13 +51,14 @@ The official Feather documentation states a **3.3 V regulator rated 500 mA peak*
 - Plan a printed fit-check before PCB arrival, and print another prototype once the board arrives; keep USB recovery accessible without opening destructive seals.
 - Add clear silkscreen labels and assembly notes. Test all six inputs and a cold-start after enclosure assembly.
 
-## Gate changes
+## Hardware checkpoints
 
-- **By Nov 6:** confirm Feather variant, TFT model/dimensions, existing breadboard inventory, powered-on battery requirement, number/location of buttons, RTC decision, pin map and PCB form factor.
-- **By Nov 13:** carrier schematic/layout reviewed, ordered, and enclosure print fit-checked; Feather-target firmware can already boot and display using temporary wiring.
-- **By Dec 4:** first received carrier assembled and electrically tested with TFT, controls, USB and battery; RTC only if included.
-- **By Dec 11:** full enclosure assembled, charging and thermal tests done, boot/flash recovery and soak complete; gift firmware/world frozen.
-- **By Dec 18:** gift-ready hardware and a known-good UF2/pack archive.
+The dates for these are in the [gift plan](../gift-2026.md#week-by-week).
+
+- **Before ordering the PCB:** Feather variant, TFT model and dimensions, breadboard inventory, battery requirement, button count and placement, RTC decision, pin map and PCB form factor confirmed; Feather-target firmware boots and draws on temporary wiring; enclosure mockup fit-checked.
+- **First board back:** carrier assembled and tested with the TFT, all buttons, USB and battery; RTC only if fitted.
+- **Freeze:** full enclosure assembled; charging and thermal tests, boot/flash recovery and soak done.
+- **Gift-ready:** hardware finished and a known-good UF2/pack archived.
 
 ## Sources / specifications to review before manufacture
 
@@ -67,4 +68,4 @@ The official Feather documentation states a **3.3 V regulator rated 500 mA peak*
 - Feather PCB / mechanical reference: https://github.com/adafruit/Adafruit-Feather-RP2350-PCB
 - Feather format/mechanical specifications: https://learn.adafruit.com/adafruit-feather/feather-specification
 
-**Open question for owner:** Which exact Feather RP2350 and TFT module are already on hand? This draft intentionally does **not** approve a final electrical schematic or footprint.
+**Open question:** which exact Feather RP2350 and TFT module are already on hand? This draft intentionally does **not** approve a final electrical schematic or footprint.

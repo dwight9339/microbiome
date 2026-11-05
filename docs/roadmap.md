@@ -1,23 +1,25 @@
 # Microbiome — Unified Roadmap (draft)
 
-**Planning date:** 2026-11-04. **Highest priority:** [Christmas 2026 gift milestone](gift-2026.md), target **Friday, December 18, 2026**; Christmas is December 25. Dates are planning gates, not guarantees. Hardware fabrication and shipping lead times must be confirmed immediately.
+**Highest priority:** the [Christmas 2026 gift](gift-2026.md), gift-ready by **Friday, December 18, 2026**. All dates and gates live in that file. One person builds all three tracks, so the tracks are ways of organising the work, not teams.
 
 ## Reading this roadmap
 
 - [Vision](vision.md) — long-term experience and architectural principles.
-- [Gift 2026 execution plan](gift-2026.md) — shared deadline, acceptance criteria, weekly gates, cut lines, hardware critical path.
+- [Gift 2026 plan](gift-2026.md) — the only place with dates: definition of done, weekly gates, cut lines.
 - [Engine & Firmware track](roadmaps/engine-firmware.md) — simulation, portable application/platform services, RP2350, custom board/enclosure integration.
-- [Studio track](roadmaps/studio.md) — minimum viable world authoring followed by full visual editing.
+- [Studio track](roadmaps/studio.md) — a basic Studio for laying out the gift world, then full visual editing.
 - [Companion track](roadmaps/companion.md) — separate device utility, independent world installation, firmware updates, eventual world sharing.
-- [Longer-term Studio design](studio.md) — detailed concept from the Phase 0 work, superseded by this roadmap on gift scope and device-management ownership.
+- [Longer-term Studio design](studio.md) — detailed concept from the Phase 0 work (arrives with PR #2). Where it differs, the Studio track wins on gift scope and Companion owns device management.
 - [Ideas / discovery backlog](ideas.md) — promising uncommitted concepts.
 
 **Status vocabulary:** Now = actively needed for the gift; Planned = accepted goal but not yet underway; Exploring = validate before committing; Later = expressly out of gift scope; Done = verified with evidence. Do not treat a proposed concept as implemented.
 
 ## Current baseline
 
+This is the one place that records what is merged; update it as things land.
+
 - Portable C11 engine, Python pack compiler, SDL simulator, headless renderer and RP2350 firmware exist.
-- WebAssembly preview, introspection and pack schema are implemented on **studio-phase0 / PR #2**, but that PR is **open**, not yet in main as of this plan.
+- WebAssembly preview, introspection, a minimal viewer and the pack schema are on **PR #2 (studio-phase0)**, which is **open**, not yet in main.
 - RP2350 firmware currently **embeds** a compiled world into the UF2. Independently installing a pack is a later protocol/storage project.
 - A full visual Studio and a standalone Companion application do **not** yet exist.
 - The existing firmware/breadboard target is Pico 2 + ST7789. The **gift plan instead targets an RP2350 Feather on a custom carrier PCB** with the existing TFT and buttons, and optional RTC. Its new GPIO mapping, battery/backlight budget, PCB and enclosure have **not** yet been validated. See [Feather hardware plan](hardware/feather-carrier-2026.md).
@@ -26,22 +28,23 @@
 
 1. **Gift hardware and build feasibility:** freeze the RP2350 Feather model, TFT/buttons, LiPo power assumptions and new GPIO map; order a custom carrier PCB quickly, prototype enclosure and physical assembly.
 2. **End-to-end golden path:** create one world -> compile -> preview -> build/install UF2 -> run reliably on the actual device.
-3. **Minimum viable Studio:** enough graphical authoring to build and save one distinct world, using desktop-first implementation and the existing pack compiler. Advanced YAML fallback is acceptable for nonessential settings.
-4. **Small engine vertical slice:** capability-aware reachable affordances, visible bird ground-to-perch-to-ground traversal without respawn, and matching contextual animations.
-5. **Polish and delivery:** art, burn-in, documentation, enclosure, spare recovery route.
-6. **Everything else** only after the gift is secure.
+3. **The gift world itself:** one distinct world with finished art.
+4. **Basic Studio:** a local dev server plus the Wasm viewer with drag-to-move editing and comment-preserving save, to lay out the gift world faster. Fallback: YAML + `packc --watch` + `mbsim`.
+5. **Small engine vertical slice:** capability-aware reachable affordances, visible bird ground-to-perch-to-ground traversal without respawn, and matching contextual animations.
+6. **Polish and delivery:** burn-in, documentation, enclosure, spare recovery route.
+7. **Everything else** only after the gift is secure.
 
 ## Three linked tracks
 
 | Track | Gift deliverable (Now) | After gift |
 | --- | --- | --- |
-| [Engine & Firmware](roadmaps/engine-firmware.md) | Reliable RP2350 firmware; one embedded custom world; minimal connected-habitat / reachability / locomotion slice; custom PCB/enclosure bring-up | richer animal generation, terrain and weather physics, reusable firmware application, platform abstraction, independent pack storage, second target |
-| [Studio](roadmaps/studio.md) | Open/edit/save/compile/live-preview one complete new world with a small set of essential visual tools | comprehensive visual canvas, behavior graph, sprite-sheet editor, lighting timeline, budgets, web build |
+| [Engine & Firmware](roadmaps/engine-firmware.md) | Reliable RP2350 firmware; one embedded custom world; custom PCB/enclosure bring-up; *should:* minimal reachability / locomotion slice | richer animal generation, terrain and weather physics, reusable firmware application, platform abstraction, independent pack storage, second target |
+| [Studio](roadmaps/studio.md) | Basic Studio: live rebuild/reload, error banner, drag-to-move places/lanes/obstacles, comment-preserving save | full visual editing, behavior graph, sprite-sheet editor, lighting timeline, budgets, packaging decision |
 | [Companion](roadmaps/companion.md) | **Not a gift blocker.** Document manual UF2/BOOTSEL recovery and a future device protocol | dedicated desktop utility: device discovery, settings, safe firmware updates, separate world installation, gallery/sharing |
 
 ## Cross-track dependencies and ownership
 
-| ID | Dependency | Owner / consumer | Gift treatment |
+| ID | Dependency | From -> used by | Gift treatment |
 | --- | --- | --- | --- |
 | X1 | Valid pack format + Python packc + real engine/Wasm preview | Engine -> Studio | Must work for one custom world; keep format/schema aligned |
 | X2 | Basic connected-habitat, reachable-place and locomotion vocabulary | Engine -> pack schema + Studio | Choose minimal contract before building deep behavior editors; avoid overdesign |
@@ -51,34 +54,22 @@
 | X6 | Separate world pack storage, compatibility/version checks and atomic activation | Firmware -> Companion world install | Later; **not required** to give the gift |
 | X7 | **Feather carrier PCB**, TFT/button wiring, LiPo/regulator/backlight current budget, USB/BOOT access, enclosure tolerances, optional RTC | Hardware -> Firmware + experience | Critical path; revise Pico GPIO mapping, prototype and order in parallel with software |
 
-## Gift execution gates
+## Gift schedule
 
-| By | Evidence required |
-| --- | --- |
-| **Nov 6** | Exact Feather SKU/TFT/battery/inputs and gift world selected; draft Feather GPIO map reviewed; optional RTC decision and Studio minimum scope agreed |
-| **Nov 13** | Feather carrier PCB reviewed and ordered; first enclosure fit draft; Feather-target pack -> preview -> UF2 -> wired hardware path |
-| **Nov 20** | Editable Studio prototype opens a pack and previews changes; engine reachability/transitions prototype evaluated; enclosure prototype tried |
-| **Nov 27** | Studio saves and rebuilds a distinct world; engine slice merged or cut; PCB fabrication/delivery tracked with contingency |
-| **Dec 4** | New world displayed on real hardware; first custom-board bring-up and enclosure fit as parts arrive; remaining defects triaged |
-| **Dec 11** | Feature and artwork freeze; device + PCB + enclosure integration tested; recovery plan and burn-in candidate ready |
-| **Dec 18** | Assembled, tested, gift-ready device and source/artifacts backed up; **no new feature dependencies** |
-
-[Full criteria, risks and contingency rules](gift-2026.md).
+The week-by-week gates are in [gift-2026.md](gift-2026.md#week-by-week). In short: hardware decided and PCB ordered first, basic Studio while the PCB is made, then the world, bring-up, freeze and burn-in.
 
 ## Scope policy
 
 **Must-have** means the gift cannot be called ready without it. **Should-have** is pursued only when the path to must-have is secure. **Stretch** is cut first. **Later** is not worked before delivery except minimal interface notes. See each track for detailed sorting.
 
-The current largest schedule risks are **custom hardware lead time**, **Studio being at concept/Phase 0 rather than an editor**, and **engine navigation redesign**. Reduce these by ordering hardware early, reusing the existing TFT/buttons but validating the Feather RP2350 pinout and battery power path, and implementing only one observable bird/rabbit vertical slice. Do **not** make Companion, over-the-air updates, marketplace, full actor generation, full terrain physics, or a second MCU prerequisites.
+The current largest schedule risks are **custom hardware lead time**, **fitting Studio work around the world itself**, and **engine navigation redesign**. Reduce these by ordering hardware early, reusing the existing TFT/buttons but validating the Feather RP2350 pinout and battery power path, keeping Studio to the basic version with a YAML fallback, and implementing at most one observable bird/rabbit vertical slice. Do **not** make Companion, over-the-air updates, marketplace, full actor generation, full terrain physics, or a second MCU prerequisites.
 
 ## How decisions evolve
 
 1. Record a user-visible scenario in [Ideas](ideas.md); do not immediately assign a deadline.
 2. Ask whether it advances the [Vision](vision.md); prototype uncertain engine boundaries.
 3. Promote to a track as Exploring -> Planned -> Now only with acceptance criteria, constraints, and dependency links.
-4. Maintain one **integrated gift critical path** in [gift-2026.md](gift-2026.md), not three competing calendars.
-5. At weekly gate reviews, record measured results, blocked dependencies, scope cuts and decision owners.
-6. Log architectural decisions in docs/decisions when they are difficult to reverse.
+4. Keep one gift schedule in [gift-2026.md](gift-2026.md), not one per track.
+5. At each weekly gate, note what's done, what's blocked and what got cut.
+6. Log hard-to-reverse architectural decisions in `docs/decisions/` (create it with the first one).
 7. Keep the Studio and Companion boundaries explicit; shared code/interfaces are encouraged, duplicate feature ownership is not.
-
-**Branch note:** this documentation branch starts at the current studio-phase0 PR #2 head, rather than main. Merge/rebase it after PR #2 to retain the existing Studio plan and Wasm baseline.

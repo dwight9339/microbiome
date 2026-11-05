@@ -189,6 +189,6 @@ Microbiome is planned as three connected products: Engine & Firmware, Studio
 - [Companion roadmap](docs/roadmaps/companion.md)
 - [Ideas and discovery backlog](docs/ideas.md)
 
-The immediate target is **Friday, December 18, 2026**: one gift-ready custom
-PCB/enclosure, one authored world, a minimum usable Studio, and reliable firmware.
-The new docs are drafts and should be reviewed before scope is treated as fixed.
+The immediate target is **Friday, December 18, 2026**: gift-ready devices on a
+custom PCB and enclosure, running one new world on reliable firmware, with a
+basic Studio to help lay the world out. The docs are drafts.

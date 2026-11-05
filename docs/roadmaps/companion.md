@@ -17,7 +17,7 @@ This is a distinct application, not a panel embedded in Studio. Desktop-first is
 - Keep BOOTSEL/UF2 flash-and-recover instructions reliable and understandable.
 - Keep release/build artifacts identifiable (target board, firmware version, embedded world, board/config revision).
 - Document the intended portable device-info and management protocol for later; avoid coupling it to USB CDC specifically.
-- If there is time, a small local script or GUI wrapper around known-good UF2 copying is optional **and must not delay hardware or Studio**.
+- If there is time, a small local script around known-good UF2 copying is optional **and must not delay hardware, the world or Studio**.
 
 The current firmware embeds an MBP world in its UF2. Do not describe independent pack installation as already supported.
 

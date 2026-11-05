@@ -1,14 +1,16 @@
 # Engine & Firmware Roadmap (draft)
 
-**Owner:** Engine/Firmware track; PCB and mechanical execution are part of the same Christmas integration plan, not a fourth software product.  
-**Shared deadline:** [Gift 2026](../gift-2026.md) — Dec 18, 2026.  
+**Scope:** engine, firmware, and the gift's PCB and enclosure (hardware is part of this track, not a fourth product).  
+**Dates:** all in [Gift 2026](../gift-2026.md).  
 **Context:** [Vision](../vision.md) | [Unified roadmap](../roadmap.md) | [Studio](studio.md) | [Companion](companion.md).
 
 ## Current implementation
 
-Portable C11 engine; YAML/PNG -> Python pack compiler -> MBP; clock, weather, actor state machines, spawn rules, tags, affordances, single-lane actors, obstacle avoidance, layer/particle rendering, SDL/headless/RP2350 hosts. The WebAssembly host, introspection, and schema are in open studio-phase0 PR #2 (as of Nov 4). Current actors use a fixed lane and render between background and front scenery; affordance lookup does not check actor reachability. Firmware links the pack into its UF2.
+Portable C11 engine; YAML/PNG -> Python pack compiler -> MBP; clock, weather, actor state machines, spawn rules, tags, affordances, single-lane actors, obstacle avoidance, layer/particle rendering, SDL/headless/RP2350 hosts. The WebAssembly host, introspection and schema are on PR #2 (see the [roadmap baseline](../roadmap.md#current-baseline)). Current actors use a fixed lane and render between background and front scenery; affordance lookup does not check actor reachability. Firmware links the pack into its UF2.
 
 ## GIFT 2026 — Now
+
+**Must:** E-G1, H-G1, H-G2, E-G5. **Should:** E-G2 to E-G4, the bird/rabbit slice; it is cut before any must slips (see [definition of done](../gift-2026.md#definition-of-done)).
 
 | ID | Delivery | Acceptance evidence | Dependencies |
 | --- | --- | --- | --- |
@@ -16,9 +18,9 @@ Portable C11 engine; YAML/PNG -> Python pack compiler -> MBP; clock, weather, ac
 | E-G2 | **Capability-aware place selection** for one small habitat example | Rabbit cannot select an elevated perch; bird can choose accessible ground/perch targets; no unreachable-target loops | Pack compiler/schema + minimal traversal vocabulary; Studio needs resulting fields |
 | E-G3 | **Continuous bird traversal** between perch and ground | One actor ID persists as bird flies, lands, hops, takes off and perches; on-screen transition visible; deterministic test scenario | E-G2 + location/link model |
 | E-G4 | **Contextual locomotion/animation** for that demo | Flight, landing and hopping/climbing visual changes trigger from surface/mode rather than separate despawned archetypes | E-G3 + sprite/art support |
-| H-G1 | Freeze exact **RP2350 Feather** variant, SPI TFT/button wiring and power/battery/optional RTC plan | Tested Feather GPIO/pin map; reviewed carrier and parts list; PCB fab ordered by Nov 13 | Gift target decision by Nov 6; [hardware checklist](../hardware/feather-carrier-2026.md) |
+| H-G1 | Freeze exact **RP2350 Feather** variant, SPI TFT/button wiring and power/battery/optional RTC plan | Tested Feather GPIO/pin map; reviewed carrier and parts list; PCB ordered at the first gift gate | [hardware checklist](../hardware/feather-carrier-2026.md) |
 | H-G2 | Custom **Feather carrier** + enclosure bring-up | Assembled carrier, display, all buttons, USB-C/BOOT and battery charge/power tested; enclosure assembled, measured current, final soak and recovery | H-G1 + lead times; Feather-target firmware E-G1 |
-| E-G5 | Preserve compatibility and diagnostics | Old forest pack still works; CI smoke/parity pass; regression covers reachability, transitions and format version | E-G2–E-G4 |
+| E-G5 | Preserve compatibility and diagnostics | Old forest pack still works; CI passes; if E-G2–E-G4 land, regression tests cover reachability, transitions and format version | — |
 
 **Architecture allowance:** Use a narrow route graph or explicit links between ground and branches. A complete terrain engine, generalized multi-plane parallax and actor genetics **must not block** delivery. Prefer the simplest pack encoding consistent with future expansion; document pack-version changes.
 

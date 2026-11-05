@@ -1,7 +1,7 @@
 # Microbiome — Project Vision (draft)
 
-**Status:** Draft for discussion, 2026-11-04. This expresses direction, not a promise that every feature will ship.  
-**Immediate priority:** a gift-ready Microbiome by **Friday, December 18, 2026**, one week before Christmas on December 25. See [Gift 2026](gift-2026.md) and the [unified roadmap](roadmap.md).
+**Status:** draft. This expresses direction, not a promise that every feature will ship.  
+**Immediate priority:** gift-ready Microbiome devices by **Friday, December 18, 2026**, one week before Christmas. See [Gift 2026](gift-2026.md) and the [unified roadmap](roadmap.md).
 
 ## North star
 
@@ -44,7 +44,7 @@ Not a physics-heavy 3D game, a general artificial intelligence agent framework, 
 
 ## What success looks like
 
-**Christmas 2026:** One finished physical gift built with a custom PCB and enclosure, displaying one distinct world that its creator can build using a minimum viable Studio. A small but visible improvement in actor interaction with habitats makes it feel more alive. Reliability and gift completion outrank generality.
+**Christmas 2026:** finished physical gifts on a custom PCB and enclosure, each showing one distinct world, laid out with a basic Studio if it's ready in time. A small, visible improvement in how actors use their habitat would make it feel more alive, but it's optional. Reliability and gift completion outrank generality.
 
 **After Christmas:** More expressive animal individuality, navigation, terrain, world continuity, and hardware-agnostic firmware; Studio grows into a comfortable creation environment; Companion becomes the friendly interface for devices and community worlds.
 
