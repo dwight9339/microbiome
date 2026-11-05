@@ -38,12 +38,13 @@ function readPng(path) {
   return { w, h, rgb };
 }
 
-// Mirrors mbsnap's main(): init without warm-up, set time and pins, then step
-// (warmup + sim) seconds in 100 ms updates at the given speed.
+// Mirrors mbsnap's main(): init without warm-up, set time and pins, warm up
+// through the core at the given speed, then step sim seconds in 100 ms updates.
 function wasmShot({ size = [320, 240], scale = 0, time, pins, seed = 1, warmup = 90, sim = 0, speed = 1, center, lcd565 = false }) {
   engine.load(pack, { width: size[0], height: size[1], scale, seed, warmup: 0, time, pins, lcd565 });
   engine.setTimeScale(speed);
-  for (let t = 0; t < (warmup + sim) * 10; t++) engine.update(100);
+  engine.warmup(warmup);
+  for (let t = 0; t < sim * 10; t++) engine.update(100);
   if (center) engine.centerCamera(...center);
   return engine.pixels();
 }

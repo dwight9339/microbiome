@@ -67,7 +67,7 @@ jobs:
       - name: Soak (~25 simulated days per seed at 600x)
         run: |
           for seed in 1 2 3; do
-            ./build/mbsnap build/forest.mbp - --seed $seed --speed 600 --sim 3600 --info | tail -n 4
+            ./build/mbsnap build/forest.mbp - --seed $seed --speed 600 --sim 3600 --info | grep -E '^(time|  actor)'
           done
 
   wasm:

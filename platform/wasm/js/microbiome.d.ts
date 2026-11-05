@@ -98,8 +98,8 @@ export interface EngineState {
   /** Back to front (draw order). */
   actors: ActorState[];
   nextSpawnMs: number;
-  /** Indexed like PackInfo.spawns. */
-  spawns: SpawnState[];
+  /** Indexed like PackInfo.spawns; null if the engine couldn't report a rule. */
+  spawns: (SpawnState | null)[];
 }
 
 export declare class Engine {
@@ -107,6 +107,8 @@ export declare class Engine {
   readonly loaded: boolean;
   load(pack: ArrayBuffer | ArrayBufferView, options?: LoadOptions): PackInfo;
   update(dtMs: number, input?: number): void;
+  /** Simulate without moving the camera, as the load-time warm-up does. */
+  warmup(seconds: number): void;
   /** RGBA view into wasm memory; valid until the next engine call. */
   pixels(): Uint8ClampedArray;
   draw(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, x?: number, y?: number): void;

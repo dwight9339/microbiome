@@ -110,8 +110,13 @@ function displayOptions() {
 function load(bytes, name, keepView) {
   $("error").textContent = "";
   try {
-    if (!keepView && $("size").value === "panorama") engine.load(bytes, { warmup: 0 }); // learn the world size
-    const info = engine.load(bytes, { ...displayOptions(), lcd565: $("lcd").checked, keepView });
+    const panorama = $("size").value === "panorama";
+    if (!keepView && panorama) engine.load(bytes, { warmup: 0 }); // learn the world size
+    let info = engine.load(bytes, { ...displayOptions(), lcd565: $("lcd").checked, keepView });
+    // A dropped pack keeps the view but may have a different world size: the
+    // panorama is only known once it's loaded, so reload at the right size.
+    if (panorama && (info.display[0] !== info.world[0] || info.display[1] !== info.world[1]))
+      info = engine.load(bytes, { ...displayOptions(), lcd565: $("lcd").checked, keepView: true });
     pack = bytes;
     packName = name;
     screen.width = info.display[0];
@@ -213,13 +218,14 @@ function updatePanel(state) {
   }
   // Names come from the pack, which may be any file someone drops here:
   // build nodes and set textContent, never parse pack strings as HTML.
-  $("spawns").replaceChildren(...state.spawns.map((s, i) => {
+  $("spawns").replaceChildren(...state.spawns.flatMap((s, i) => {
+    if (!s) return [];
     const why = s.blocked.map((b) => (b === "when" ? `when (${s.failVar})` : b === "cooldown" ? `cooldown ${Math.ceil(s.cooldownMs / 1000)}s` : b));
-    return el("tr", {}, [
+    return [el("tr", {}, [
       el("td", {}, engine.info.spawns[i].actor),
       el("td", { className: "n" }, `${s.alive}/${s.max}`),
       el("td", { className: why.length ? "warn" : "ok" }, why.length ? why.join(", ") : "eligible"),
-    ]);
+    ])];
   }));
   $("nextSpawn").textContent = `next spawn roll in ${(state.nextSpawnMs / 1000).toFixed(1)} s · ${state.actors.length} animals`;
   const a = state.actors.find((x) => x.id === selected);
@@ -253,9 +259,13 @@ function frame(now) {
   if (engine.loaded) {
     engine.update(dt, held);
     engine.draw(ctx);
-    const state = engine.state();
-    drawOverlay(state);
-    if ((panelMs += dt) > 200) { panelMs = 0; updatePanel(state); }
+    // state() builds and parses JSON: only fetch it when something uses it.
+    const panelDue = (panelMs += dt) > 200;
+    if ($("debug").checked || panelDue) {
+      const state = engine.state();
+      drawOverlay(state);
+      if (panelDue) { panelMs = 0; updatePanel(state); }
+    }
   }
   requestAnimationFrame(frame);
 }
@@ -279,6 +289,7 @@ $("lcd").addEventListener("change", () => pack && load(pack, packName, true));
 $("debug").addEventListener("change", () => engine.loaded && drawOverlay(engine.state()));
 
 screen.addEventListener("click", (e) => {
+  if (!engine.loaded) return;
   const r = screen.getBoundingClientRect();
   const x = ((e.clientX - r.left) / r.width) * screen.width, y = ((e.clientY - r.top) / r.height) * screen.height;
   const hit = engine.state().actors.reverse().find((a) => x >= a.rect[0] && x < a.rect[0] + a.rect[2] && y >= a.rect[1] && y < a.rect[1] + a.rect[3]);

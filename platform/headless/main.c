@@ -77,7 +77,7 @@ static void print_info(const mb_engine_t *e) {
            e->n_layers, e->n_actor_defs, e->n_spawns, e->n_psys, e->n_palettes);
     printf("time %02u:%02u  date %02u-%02u\n", mb_day_minute(e) / 60, mb_day_minute(e) % 60, e->month, e->mday);
     for (int i = 0; i < (int)e->n_vars; i++) {
-        char lbl[64];
+        char lbl[256]; /* packc caps enum labels at 255 bytes */
         printf("  var %-10s = %s\n", mb_var_name(e, i), mb_var_label(e, i, lbl, sizeof lbl));
     }
     for (int i = 0; i < mb_actor_count(e); i++) {
@@ -180,7 +180,8 @@ int main(int argc, char **argv) {
     for (int i = 0; i < nsets; i++)
         if (pin_var(&eng, sets[i])) return 1;
     mb_set_time_scale(&eng, (uint32_t)speed);
-    for (uint32_t t = 0; t < (cfg.warmup_s + (uint32_t)sim_s) * 10u; t++) mb_engine_update(&eng, 100, 0);
+    mb_engine_warmup(&eng, cfg.warmup_s);
+    for (uint32_t t = 0; t < (uint32_t)sim_s * 10u; t++) mb_engine_update(&eng, 100, 0);
 
     if (center) {
         int cx, cy;

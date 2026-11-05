@@ -113,18 +113,25 @@ export class Engine {
     if (time !== undefined) this.setTime(time);
     for (const [name, value] of Object.entries(pins ?? {})) this.pin(name, value);
 
-    // Warm up without letting the camera autopilot wander off its start.
-    const cam = this.state().camera;
-    for (let t = 0; t < opts.warmup * 10; t++) this.update(100);
-    const center = prev ? prev.center : [cam[0] + (cam[2] >> 1), cam[1] + (cam[3] >> 1)];
-    this.centerCamera(center[0], center[1]);
-    if (prev) this.setTimeScale(prev.timeScale);
+    // The core's warm-up leaves the camera and its idle timer alone, so the
+    // autopilot doesn't start drifting the moment the pack appears.
+    this.warmup(opts.warmup);
+    if (prev) {
+      this.centerCamera(prev.center[0], prev.center[1]);
+      this.setTimeScale(prev.timeScale);
+    }
     return this.#info;
   }
 
   /** Advance the simulation. dt is clamped to 250 ms by the engine. */
   update(dtMs, input = 0) {
     this.#x.mbw_update(Math.max(0, Math.round(dtMs)) >>> 0, input >>> 0);
+  }
+
+  /** Simulate `seconds` without moving the camera (the load-time warm-up).
+   *  For warming up again after changing time, date or pins. */
+  warmup(seconds) {
+    this.#x.mbw_warmup(Math.max(0, Math.round(seconds)) >>> 0);
   }
 
   /** Render a frame and return its RGBA pixels (display width x height).
@@ -139,8 +146,9 @@ export class Engine {
 
   /** Render into a 2D canvas context (browser). */
   draw(ctx, x = 0, y = 0) {
+    const px = this.pixels(); // throws MicrobiomeError when no pack is loaded
     const [w, h] = this.#info.display;
-    ctx.putImageData(new ImageData(new Uint8ClampedArray(this.pixels()), w, h), x, y);
+    ctx.putImageData(new ImageData(new Uint8ClampedArray(px), w, h), x, y);
   }
 
   /** Everything that changes per frame: clock, camera, variables, actors,

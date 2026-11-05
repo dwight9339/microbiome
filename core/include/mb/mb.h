@@ -225,6 +225,10 @@ typedef struct mb_engine {
 
 mb_err_t mb_engine_init(mb_engine_t *e, const void *pack, size_t pack_size, const mb_config_t *cfg);
 void     mb_engine_update(mb_engine_t *e, uint32_t dt_ms, uint32_t input);
+/* Simulate `seconds` in 100 ms steps without touching the camera or its idle
+ * timer: the warm-up mb_engine_init runs, for hosts that set the time or pins
+ * after init (with cfg.warmup_s = 0) and want the warm-up to reflect them. */
+void     mb_engine_warmup(mb_engine_t *e, uint32_t seconds);
 
 /* Render display rows [y0, y0+h) into `out` (native format, `stride` bytes per row). */
 void     mb_engine_render_strip(mb_engine_t *e, int y0, int h, void *out, size_t stride);

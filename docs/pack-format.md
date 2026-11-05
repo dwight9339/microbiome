@@ -130,7 +130,8 @@ vars:
 ```
 
 String values become an enum: the labels are what conditions and the
-debug tools use. A `step` source must be defined earlier.
+debug tools use. Each label is at most 255 bytes. A `step` source must be
+defined earlier.
 
 ## Conditions
 

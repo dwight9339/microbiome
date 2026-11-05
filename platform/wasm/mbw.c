@@ -6,7 +6,7 @@
  *   [ pack, copied in by JS ][ framebuffer, display w*h RGBA ][ JSON out ]
  *
  * All three are (re)placed on each load and linear memory grows as needed
- * (the JSON area doubles until the document fits). The
+ * (the JSON area doubles until the document fits, and keeps that size). The
  * engine reads the pack in place, so JS must not overwrite it (by calling
  * mbw_pack_buffer) and then keep stepping the old engine: mbw_pack_buffer
  * marks the engine dead until the next successful mbw_init.
@@ -30,8 +30,6 @@ static uint8_t *fb;
 static uint32_t fb_end;    /* offset from heap() just past the framebuffer */
 static uint16_t fb_w, fb_h;
 static bool fb_565;
-
-static char scratch[256];  /* JS -> C strings (variable names) */
 
 static uint32_t align16(uint32_t v) { return (v + 15u) & ~15u; }
 
@@ -101,6 +99,11 @@ EXPORT(mbw_update) void mbw_update(uint32_t dt_ms, uint32_t input) {
     if (live) mb_engine_update(&eng, dt_ms, input);
 }
 
+/* Simulate without moving the camera (see mb_engine_warmup). */
+EXPORT(mbw_warmup) void mbw_warmup(uint32_t seconds) {
+    if (live) mb_engine_warmup(&eng, seconds);
+}
+
 /* Renders the whole display; returns a pointer to w*h RGBA bytes (ImageData
  * layout), or 0 if no engine is loaded. */
 EXPORT(mbw_render) uint8_t *mbw_render(void) {
@@ -133,9 +136,6 @@ EXPORT(mbw_render) uint8_t *mbw_render(void) {
 
 /* ---- control ------------------------------------------------------------ */
 
-EXPORT(mbw_scratch) char *mbw_scratch(void) { return scratch; }
-EXPORT(mbw_scratch_size) uint32_t mbw_scratch_size(void) { return sizeof scratch; }
-
 EXPORT(mbw_set_minute) void mbw_set_minute(uint32_t minute) {
     if (live) mb_set_day_minute(&eng, minute % 1440u);
 }
@@ -145,11 +145,6 @@ EXPORT(mbw_set_date) void mbw_set_date(uint32_t year, uint32_t month, uint32_t d
 }
 EXPORT(mbw_set_time_scale) void mbw_set_time_scale(uint32_t scale) {
     if (live) mb_set_time_scale(&eng, scale);
-}
-/* Looks up the NUL-terminated name in mbw_scratch(); -1 if absent. */
-EXPORT(mbw_var_find) int mbw_var_find(void) {
-    scratch[sizeof scratch - 1] = '\0';
-    return live ? mb_var_find(&eng, scratch) : -1;
 }
 EXPORT(mbw_var_pin) void mbw_var_pin(int idx, int32_t value) {
     if (live) mb_var_pin(&eng, idx, value);
@@ -207,13 +202,20 @@ static void jkey(const char *k) { jstr(k); jraw(":"); }
 static void jbool(bool b) { jraw(b ? "true" : "false"); }
 static void jsep(int i) { if (i) jraw(","); }
 
+/* Enum value labels, which packc caps at 255 bytes (MAX_LABEL). */
+typedef char label_buf[256];
+
 /* Runs a writer into the JSON area above the framebuffer, doubling the area
  * until the document fits. Returns 0 only if memory can't grow. Names in a
- * pack have no length limit, so neither does the output. */
+ * pack have no length limit, so neither does the output. The area keeps the
+ * size that last worked, so a large state isn't rewritten several times on
+ * every frame. */
+static uint32_t json_cap = 64u * 1024u;
+
 static const char *json_build(void (*write)(void)) {
     if (!live) return "null";
     uint32_t base = align16(fb_end);
-    for (uint32_t cap = 64u * 1024u; cap <= (1u << 28); cap *= 2u) {
+    for (uint32_t cap = json_cap; cap <= (1u << 28); cap *= 2u) {
         if (!reserve(base + cap)) return 0;
         json = (char *)heap() + base;
         jcap = cap;
@@ -222,6 +224,7 @@ static const char *json_build(void (*write)(void)) {
         write();
         if (!joverflow) {
             json[jn] = '\0';
+            json_cap = cap;
             return json;
         }
     }
@@ -230,7 +233,7 @@ static const char *json_build(void (*write)(void)) {
 
 static void write_pack_json(void) {
     const mb_engine_t *e = &eng;
-    char lbl[64];
+    label_buf lbl;
     jraw("{"); jkey("name"); jstr(mb_str(e, e->world->name_str));
     jraw(","); jkey("packVersion"); jint(MB_PACK_VERSION);
     jraw(","); jkey("packSize"); jint(pack_size);
@@ -320,7 +323,7 @@ EXPORT(mbw_pack_json) const char *mbw_pack_json(void) { return json_build(write_
 
 static void write_state_json(void) {
     const mb_engine_t *e = &eng;
-    char lbl[64];
+    label_buf lbl;
     uint16_t year;
     uint8_t month, day;
     int cx, cy, cw, ch;
@@ -343,10 +346,10 @@ static void write_state_json(void) {
     jraw("]");
 
     jraw(","); jkey("actors"); jraw("[");
-    for (int i = 0; i < mb_actor_count(e); i++) {
+    for (int i = 0, n = 0; i < mb_actor_count(e); i++) {
         mb_actor_info_t a;
         if (!mb_actor_info(e, i, &a)) continue;
-        jsep(i);
+        jsep(n++);
         jraw("{"); jkey("id"); jint(a.id);
         jraw(","); jkey("type"); jint(a.type);
         jraw(","); jkey("name"); jstr(a.name);
@@ -371,8 +374,8 @@ static void write_state_json(void) {
     jraw(","); jkey("spawns"); jraw("[");
     for (int i = 0; i < mb_spawn_count(e); i++) {
         mb_spawn_info_t s;
-        if (!mb_spawn_info(e, i, &s)) continue;
         jsep(i);
+        if (!mb_spawn_info(e, i, &s)) { jraw("null"); continue; } /* keep indices aligned with info.spawns */
         jraw("{"); jkey("blocked"); jraw("[");
         int k = 0;
         if (s.blocked & MB_SPAWN_BLOCK_COND) { jsep(k++); jstr("when"); }

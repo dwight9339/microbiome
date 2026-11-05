@@ -41,7 +41,11 @@ for n in NAMES:
 pack = {
     "name": '<script>window.__pwned=1</script> "Stress"',
     "world": {"size": [1280, 300], "spawning": {"interval": "1s", "chance": 100, "max_actors": 12}},
-    "vars": {"mood": {"step": "hour", "table": {0: "<i>calm</i>", 12: 'say "hi"'}}},
+    "vars": {
+        "mood": {"step": "hour", "table": {0: "<i>calm</i>", 12: 'say "hi"'}},
+        # 255 bytes each (packc's limit), the same up to the last byte.
+        "long": {"step": "hour", "table": {0: "x" * 254 + "A", 12: "x" * 254 + "B"}},
+    },
     "layers": [{"name": "<u>ground</u>", "image": os.path.join(art, "ground.png")}],
     "lanes": {"ground": [232, 290]},
     "actors": actors,

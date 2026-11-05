@@ -116,6 +116,11 @@ void mb_engine_update(mb_engine_t *e, uint32_t dt_ms, uint32_t input) {
     mb_actors_sort(e);
 }
 
+void mb_engine_warmup(mb_engine_t *e, uint32_t seconds) {
+    for (uint32_t t = 0; t < seconds * 10u; t++) simulate(e, 100);
+    mb_actors_sort(e);
+}
+
 mb_err_t mb_engine_init(mb_engine_t *e, const void *pack, size_t pack_size, const mb_config_t *cfg) {
     memset(e, 0, sizeof *e);
     mb_err_t err = mb_pack_bind(e, pack, pack_size);
@@ -160,7 +165,6 @@ mb_err_t mb_engine_init(mb_engine_t *e, const void *pack, size_t pack_size, cons
     mb_palette_update(e, true);
     mb_particles_init(e);
 
-    for (uint32_t t = 0; t < cfg->warmup_s * 10u; t++) simulate(e, 100);
-    mb_actors_sort(e);
+    mb_engine_warmup(e, cfg->warmup_s);
     return MB_OK;
 }

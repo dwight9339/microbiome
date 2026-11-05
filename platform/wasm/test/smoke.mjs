@@ -102,6 +102,17 @@ check("hot reload keeps the view", () => {
   assert.equal(after.vars[w].pinned, true);
 });
 
+check("camera stays put after load (idle drift starts later)", () => {
+  // Forest drifts after 25 s idle; the 90 s warm-up must not count as idle.
+  engine.load(pack);
+  const start = engine.state().camera;
+  for (let i = 0; i < 20; i++) engine.update(100);
+  assert.deepEqual(engine.state().camera, start);
+  engine.load(pack, { keepView: true });
+  for (let i = 0; i < 20; i++) engine.update(100);
+  assert.deepEqual(engine.state().camera, start);
+});
+
 check("display sizes, panorama, RGB565", () => {
   let info = engine.load(pack, { width: 480, height: 480 });
   assert.equal(info.scale, 2);
@@ -142,6 +153,13 @@ if (stressPath) {
     assert.deepEqual(info.spawns.map((s) => s.actor), NAMES);
     assert.equal(info.layers[0].name, "<u>ground</u>");
     assert.deepEqual(info.vars.find((v) => v.name === "mood").labels, ["<i>calm</i>", 'say "hi"']);
+    const long = ["x".repeat(254) + "A", "x".repeat(254) + "B"];
+    assert.deepEqual(info.vars.find((v) => v.name === "long").labels, long);
+    engine.pin("long", long[1]);
+    const v = engine.state().vars[info.vars.findIndex((x) => x.name === "long")];
+    assert.equal(v.label, long[1]);
+    assert.equal(v.pinned, true);
+    engine.unpin("long");
     assert.equal(info.actors[0].states.length, 120);
     assert.ok(info.actors[0].states[7].startsWith('<b>state 7</b> "q" \\ '));
   });

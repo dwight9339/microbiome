@@ -80,6 +80,7 @@ ENTER = {"edge": 0, "place": 1, "anywhere": 2}
 OBSTACLE_ELLIPSE = 0
 OBSTACLE_MAX_SIZE, MAX_OBSTACLES = 1024, 8
 PART_BLINK, PART_WANDER = 0x01, 0x02
+MAX_LABEL = 255  # bytes per enum value label; hosts size their label buffers from it
 
 
 class PackError(Exception):
@@ -376,6 +377,10 @@ class Builder:
             self.vars[name] = var
         if len(self.vars) > 32:
             fail("vars", "at most 32 variables (including the 4 built-ins)")
+        for var in self.vars.values():
+            for label in var.values:
+                if len(label.encode()) > MAX_LABEL:
+                    fail(f"vars.{var.name}", f"value {label[:20]!r}... is longer than {MAX_LABEL} bytes")
         for var in self.vars.values():
             off = self.blob_add(var.data) if var.data else 0
             self.rows["vars"].append((
