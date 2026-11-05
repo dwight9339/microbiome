@@ -119,6 +119,24 @@ CI uploads a ready-built `microbiome-web` artifact, so you can also just serve
 that folder. `build-wasm/web/microbiome.js` is the JS API (typed in
 `microbiome.d.ts`) that the planned [studio](docs/studio.md) builds on.
 
+## Studio (live preview while you edit a pack)
+
+The basic Studio is a small dev server around the browser viewer. Edit
+`pack.yaml` or the art in any editor; every save recompiles the pack and the
+open page reloads it in place, keeping the camera, clock and pinned variables.
+A failed build leaves the last good scene running with the error shown over
+it, and schema problems (typos packc would ignore) are listed in the side panel.
+
+```sh
+cmake -S platform/wasm -B build-wasm && cmake --build build-wasm   # once, and after engine changes
+python3 studio/server.py packs/forest                             # open http://127.0.0.1:8000
+```
+
+It needs only packc's dependencies (`pip install pyyaml pillow`, plus
+`jsonschema` for the schema warnings). Use `--port` to change the port and
+`--web` to point at a different wasm build. Drag-to-move editing comes next;
+see the [Studio roadmap](docs/roadmaps/studio.md).
+
 ## Firmware (RP2350 / Pico 2)
 
 **No toolchain needed to try it:** every CI run uploads a `microbiome-firmware`
@@ -170,6 +188,7 @@ If the picture is mirrored, rotated or has inverted colours, change
 | `platform/sdl/` | Desktop simulator with hot reload. |
 | `platform/headless/` | `mbsnap` PNG renderer. |
 | `platform/wasm/` | WebAssembly host, JS API (`microbiome.js`) and web viewer. |
+| `studio/` | Studio dev server: live rebuild and preview of a pack folder. |
 | `platform/rp2350/` | Pico 2 firmware: ST7789 DMA driver, buttons, optional DS3231, serial console. |
 | `docs/architecture.md` | How the engine works and how to port it. |
 | `docs/pack-format.md` | Writing packs: the YAML schema, behaviours, and art requirements. |

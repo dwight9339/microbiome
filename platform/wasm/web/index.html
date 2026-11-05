@@ -46,6 +46,11 @@
   td.n { text-align: right; font-variant-numeric: tabular-nums; }
   .ok { color: var(--ok); } .warn { color: var(--warn); }
   #error { color: var(--warn); white-space: pre-wrap; }
+  #banner { position: absolute; top: 12px; left: 16px; right: 16px; z-index: 1; background: var(--panel); color: var(--text);
+            border: 1px solid var(--warn); border-left-width: 4px; border-radius: 6px; padding: 8px 12px; font-size: 13px; }
+  #banner b { color: var(--warn); }
+  #banner pre { margin: 4px 0 0; white-space: pre-wrap; font: 12px/1.4 ui-monospace, monospace; max-height: 30vh; overflow: auto; }
+  #studio ul { margin: 4px 0 0; padding-left: 16px; }
   dl { display: grid; grid-template-columns: 90px 1fr; gap: 2px 8px; margin: 0; font-size: 12px; }
   dt { color: var(--muted); } dd { margin: 0; font-variant-numeric: tabular-nums; }
   button { font: inherit; border: 1px solid var(--line); background: var(--bg); color: var(--text); border-radius: 6px; padding: 3px 10px; cursor: pointer; }
@@ -54,6 +59,7 @@
 <body>
 <main>
   <div id="stage">
+    <div id="banner" hidden><b></b><pre></pre></div>
     <div id="frame"><canvas id="screen" width="320" height="240"></canvas><canvas id="overlay"></canvas></div>
     <div id="hint">Arrow keys pan · click an animal to inspect it · drop a .mbp file to load it (dropping again keeps the view)</div>
   </div>
@@ -61,6 +67,7 @@
     <h1 id="title">microbiome</h1>
     <div class="sub" id="meta">loading…</div>
     <div id="error"></div>
+    <div class="sub" id="studio" hidden></div>
 
     <h2>Clock</h2>
     <div class="clock" id="clock">--:--</div>
@@ -107,6 +114,7 @@ function displayOptions() {
   return { width: w, height: h, scale: 0 };
 }
 
+// Returns whether the engine accepted the pack.
 function load(bytes, name, keepView) {
   $("error").textContent = "";
   try {
@@ -126,8 +134,10 @@ function load(bytes, name, keepView) {
     $("title").textContent = info.name || name;
     $("meta").textContent = `${name} · ${(info.packSize / 1024).toFixed(0)} KiB · world ${info.world.join("×")} · ` +
       `display ${info.display.join("×")} at ${info.scale}× → view ${info.view.join("×")}`;
+    return true;
   } catch (e) {
     $("error").textContent = `${name}: ${e.message}`;
+    return false;
   }
 }
 
@@ -306,14 +316,82 @@ stage.addEventListener("drop", async (e) => {
   if (file) load(new Uint8Array(await file.arrayBuffer()), file.name, engine.loaded);
 });
 
+// ---- studio mode (?studio): live reload from studio/server.py
+// The server pushes its build status on every change; a good build is
+// fetched and loaded in place (camera, clock and pins kept). A failed build
+// leaves the last good pack running with the error over it.
+let studioSession = "", loadedVersion = 0, wantedVersion = 0, fetching = false;
+
+function showBanner(title, text) {
+  const b = $("banner");
+  b.hidden = !title;
+  b.querySelector("b").textContent = title ?? "";
+  b.querySelector("pre").textContent = text ?? "";
+}
+
+function showBuild(s) {
+  const line = s.state === "ok" ? `built ${s.time} in ${s.ms} ms` : `build failed at ${s.time}`;
+  const warnings = s.warnings ?? [];
+  $("studio").hidden = false;
+  $("studio").replaceChildren(
+    el("span", { className: s.state === "ok" ? "ok" : "warn" }, `studio · ${s.pack} · ${line}`),
+    ...(warnings.length ? [el("ul", { className: "warn" }, warnings.map((w) => el("li", {}, w)))] : []),
+  );
+  if (s.state === "error")
+    showBanner(s.packVersion ? "Build failed: showing the last good build" : "Build failed", s.error + (s.detail ? `\n\n${s.detail}` : ""));
+  else showBanner(null);
+}
+
+async function syncPack(name) {
+  if (fetching) return;
+  fetching = true;
+  try {
+    while (wantedVersion > loadedVersion) {
+      const res = await fetch("studio/pack.mbp", { cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const version = +res.headers.get("X-Pack-Version");
+      if (!load(new Uint8Array(await res.arrayBuffer()), name, engine.loaded))
+        showBanner("The engine rejected this build", $("error").textContent);
+      if (version <= loadedVersion) break; // nothing newer to fetch
+      loadedVersion = version;
+    }
+  } catch (e) {
+    showBanner("Could not fetch the build", e.message);
+  } finally {
+    fetching = false;
+  }
+}
+
+function startStudio() {
+  $("hint").textContent = "Save pack.yaml or art in any editor and the scene reloads · arrow keys pan · click an animal to inspect it";
+  $("meta").textContent = "waiting for studio/server.py…";
+  const events = new EventSource("studio/events");
+  events.onmessage = (e) => {
+    const s = JSON.parse(e.data);
+    if (s.session !== studioSession) { studioSession = s.session; loadedVersion = 0; } // server restarted
+    showBuild(s);
+    wantedVersion = s.packVersion;
+    syncPack(s.pack);
+  };
+  events.onerror = () => {
+    $("studio").hidden = false;
+    $("studio").replaceChildren(el("span", { className: "warn" }, "studio · disconnected, retrying (is studio/server.py running?)"));
+  };
+}
+
 // ---- start
-const packUrl = new URLSearchParams(location.search).get("pack") ?? "forest.mbp";
-try {
-  const res = await fetch(packUrl);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  load(new Uint8Array(await res.arrayBuffer()), packUrl.split("/").pop(), false);
-} catch (e) {
-  $("error").textContent = `Could not fetch ${packUrl} (${e.message}). Drop a .mbp file here.`;
+const params = new URLSearchParams(location.search);
+if (params.has("studio")) {
+  startStudio();
+} else {
+  const packUrl = params.get("pack") ?? "forest.mbp";
+  try {
+    const res = await fetch(packUrl);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    load(new Uint8Array(await res.arrayBuffer()), packUrl.split("/").pop(), false);
+  } catch (e) {
+    $("error").textContent = `Could not fetch ${packUrl} (${e.message}). Drop a .mbp file here.`;
+  }
 }
 requestAnimationFrame(frame);
 </script>

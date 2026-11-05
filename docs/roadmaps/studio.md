@@ -15,8 +15,8 @@ The WebAssembly engine host, introspection API, a minimal browser viewer (time s
 
 | ID | Deliverable | Done when |
 | --- | --- | --- |
-| S-G1 | **Local dev server** (Python): serves the Wasm viewer for a pack folder, reruns packc when a source file changes, pushes the new pack so the viewer reloads in place (camera, clock and pins kept) | Saving `pack.yaml` or a PNG in any editor updates the browser within a second or so |
-| S-G2 | **Error banner**: packc errors and schema problems shown in the page, with whatever location packc reports | A broken `pack.yaml` shows a readable error instead of a stale or blank scene |
+| S-G1 | **Done.** **Local dev server** (`studio/server.py`): serves the Wasm viewer for a pack folder, reruns packc when a source file changes, pushes the new pack so the viewer reloads in place (camera, clock and pins kept) | Saving `pack.yaml` or a PNG in any editor updates the browser within a second or so |
+| S-G2 | **Done.** **Error banner**: packc errors and schema problems shown in the page, with whatever location packc reports | A broken `pack.yaml` shows a readable error instead of a stale or blank scene |
 | S-G3 | **Edit overlay** in the viewer: draws places, lanes and obstacles over the scene, shows world coordinates under the cursor, lets you drag them | Places, lanes and obstacles can be moved by dragging |
 | S-G4 | **Save back to YAML** with ruamel.yaml round-tripping: the server rewrites only the coordinate values that changed | A drag saves into `pack.yaml` with comments, ordering and other formatting intact; `git diff` shows only the moved numbers |
 | S-G5 | **Gift use**: the gift world is laid out with it | The world's layout was built in Studio; everything else edited in YAML |

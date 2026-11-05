@@ -63,6 +63,8 @@ else()
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/packc/check_schema.py
                      --self-test ${CMAKE_SOURCE_DIR}/packs/forest)
 endif()
+# Studio dev server: builds, live-reload events and error reporting.
+add_test(NAME studio_server COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/studio/test_server.py)
 if(TARGET mbsim)
     # Runs the real simulator loop for 2 s without a display (also proves
     # SDL2 is found at runtime, e.g. SDL2.dll next to mbsim.exe on Windows).
