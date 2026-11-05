@@ -15,6 +15,7 @@ to a compact binary blob that the engine reads in place from flash.
  packs/forest/art/*.png ─┴─ packc ──> forest.mbp ──> engine core (C11, no heap)
                                                        ├─ platform/sdl       desktop simulator
                                                        ├─ platform/headless  PNG snapshots / tests
+                                                       ├─ platform/wasm      browser viewer, future studio
                                                        └─ platform/rp2350    Pico 2 + ST7789 firmware
 ```
 
@@ -95,10 +96,28 @@ python3 tools/packc/packc.py packs/forest -o build/forest.mbp --watch
 ./build/mbsnap build/forest.mbp night.png --time 22:30 --set weather=clear --sim 120
 ./build/mbsnap build/forest.mbp pano.png --panorama          # whole world, unscrolled
 ./build/mbsnap build/forest.mbp shot.png --frames 20 --every 100   # animation strip
-./build/mbsnap build/forest.mbp - --info --sim 600            # print vars + actors
+./build/mbsnap build/forest.mbp - --info --sim 600            # vars, actors, spawn-rule status
 ```
 
-`ctest --test-dir build` runs smoke tests.
+`ctest --test-dir build` runs smoke tests. With `pip install jsonschema` it
+also checks `pack.yaml` against the [pack schema](docs/pack-format.md#editor-support).
+
+## In a browser (WebAssembly)
+
+The same engine core, compiled to WebAssembly with plain clang (no Emscripten),
+with a small viewer: time scrubbing, pinned variables, a debug overlay,
+click-to-inspect, and spawn-rule status. Drop a `.mbp` on it to load another pack.
+
+```sh
+sudo apt install clang lld nodejs        # macOS: brew install llvm lld node
+cmake -S platform/wasm -B build-wasm && cmake --build build-wasm
+ctest --test-dir build-wasm              # add -DMB_MBSNAP=build/mbsnap when configuring for the pixel-parity test
+python3 -m http.server -d build-wasm/web 8000   # open http://localhost:8000
+```
+
+CI uploads a ready-built `microbiome-web` artifact, so you can also just serve
+that folder. `build-wasm/web/microbiome.js` is the JS API (typed in
+`microbiome.d.ts`) that the planned [studio](docs/studio.md) builds on.
 
 ## Firmware (RP2350 / Pico 2)
 
@@ -145,10 +164,13 @@ If the picture is mirrored, rotated or has inverted colours, change
 | `core/` | The engine: pack loader/validator, clock & world variables, actors, particles, strip renderer. Portable C11, no allocation, no platform code. |
 | `core/include/mb/pack_format.h` | The binary pack format (the contract between `packc` and the engine). |
 | `tools/packc/packc.py` | Pack compiler: YAML + PNG → `.mbp`. |
+| `tools/packc/pack.schema.json` | JSON Schema for `pack.yaml` (editor autocomplete, studio forms); `check_schema.py` validates against it. |
 | `tools/placeholder_art.py` | Generates the current placeholder forest art. |
 | `packs/forest/` | The forest pack. |
 | `platform/sdl/` | Desktop simulator with hot reload. |
 | `platform/headless/` | `mbsnap` PNG renderer. |
+| `platform/wasm/` | WebAssembly host, JS API (`microbiome.js`) and web viewer. |
 | `platform/rp2350/` | Pico 2 firmware: ST7789 DMA driver, buttons, optional DS3231, serial console. |
 | `docs/architecture.md` | How the engine works and how to port it. |
 | `docs/pack-format.md` | Writing packs: the YAML schema, behaviours, and art requirements. |
+| `docs/studio.md` | Plan for microbiome Studio, a desktop/browser scene editor. |

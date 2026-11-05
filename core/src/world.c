@@ -23,11 +23,17 @@ static bool clause_holds(const mb_engine_t *e, const mb_pk_clause_t *cl) {
 }
 
 bool mb_cond(const mb_engine_t *e, uint16_t c) {
-    if (c == 0 || c >= e->n_conds) return true;
+    return mb_cond_fail_var(e, c) < 0;
+}
+
+int mb_cond_fail_var(const mb_engine_t *e, uint16_t c) {
+    if (c == 0 || c >= e->n_conds) return -1;
     const mb_pk_cond_t *cd = &e->conds[c];
-    for (uint32_t i = 0; i < cd->clause_count; i++)
-        if (!clause_holds(e, &e->clauses[cd->clause_first + i])) return false;
-    return true;
+    for (uint32_t i = 0; i < cd->clause_count; i++) {
+        const mb_pk_clause_t *cl = &e->clauses[cd->clause_first + i];
+        if (!clause_holds(e, cl)) return cl->var;
+    }
+    return -1;
 }
 
 /* ---- clock -------------------------------------------------------------- */
@@ -210,10 +216,17 @@ int mb_var_enum_count(const mb_engine_t *e, int idx) {
 }
 
 const char *mb_var_label(const mb_engine_t *e, int idx, char *buf, size_t n) {
+    if (idx < 0 || (uint32_t)idx >= e->n_vars) {
+        if (n) buf[0] = '\0';
+        return buf;
+    }
+    return mb_var_value_label(e, idx, e->vars[idx], buf, n);
+}
+
+const char *mb_var_value_label(const mb_engine_t *e, int idx, int32_t val, char *buf, size_t n) {
     if (!n) return buf;
     buf[0] = '\0';
     if (idx < 0 || (uint32_t)idx >= e->n_vars) return buf;
-    int32_t val = e->vars[idx];
     const mb_pk_var_t *v = &e->var_defs[idx];
     if (v->values_str && val >= 0) {
         const char *s = mb_str(e, v->values_str);
@@ -247,6 +260,10 @@ void mb_var_unpin(mb_engine_t *e, int idx) {
     if (idx < 0 || (uint32_t)idx >= e->n_vars) return;
     e->var_pinned &= ~(1u << idx);
     mb_vars_update(e, true);
+}
+
+bool mb_var_pinned(const mb_engine_t *e, int idx) {
+    return idx >= 0 && (uint32_t)idx < e->n_vars && ((e->var_pinned >> idx) & 1u);
 }
 
 /* ---- palette ------------------------------------------------------------ */

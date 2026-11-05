@@ -363,12 +363,16 @@ static void spawn_one(mb_engine_t *e, uint16_t rule, int nth) {
     enter_state(e, a, 0);
 }
 
+static uint32_t spawn_interval_ms(const mb_engine_t *e) {
+    uint32_t interval = (uint32_t)e->world->spawn_interval_ds * 100u;
+    return interval ? interval : 5000;
+}
+
 void mb_spawn_update(mb_engine_t *e, uint32_t dt_ms) {
     for (uint32_t i = 0; i < e->n_spawns; i++)
         e->spawn_cd_ms[i] = e->spawn_cd_ms[i] > dt_ms ? e->spawn_cd_ms[i] - dt_ms : 0;
 
-    uint32_t interval = (uint32_t)e->world->spawn_interval_ds * 100u;
-    if (!interval) interval = 5000;
+    uint32_t interval = spawn_interval_ms(e);
     e->spawn_timer_ms += dt_ms;
     if (e->spawn_timer_ms < interval) return;
     e->spawn_timer_ms -= interval;
@@ -524,5 +528,41 @@ bool mb_actor_info(const mb_engine_t *e, int nth, mb_actor_info_t *out) {
     mb_world_to_display(e, out->x - ad->anchor_x, out->y - ad->anchor_y, &out->sx, &out->sy);
     out->w = ad->frame_w * e->scale;
     out->h = ad->frame_h * e->scale;
+    out->id = a->id;
+    out->type = a->archetype;
+    out->state_index = a->state;
+    out->spawn_rule = a->spawn_rule;
+    out->tx = a->tx >> 8;
+    out->ty = a->ty >> 8;
+    out->state_ms = a->state_ms;
+    out->state_dur_ms = a->state_dur_ms;
+    out->age_ms = a->age_ms;
+    out->leaving = (a->flags & MB_AF_LEAVING) != 0;
+    out->face_left = (a->flags & MB_AF_FACE_LEFT) != 0;
     return true;
+}
+
+int mb_spawn_count(const mb_engine_t *e) { return (int)e->n_spawns; }
+
+bool mb_spawn_info(const mb_engine_t *e, int rule, mb_spawn_info_t *out) {
+    if (rule < 0 || (uint32_t)rule >= e->n_spawns) return false;
+    const mb_pk_spawn_t *sp = &e->spawns[rule];
+    int alive = 0;
+    for (int i = 0; i < MB_MAX_ACTORS; i++) alive += e->actors[i].used;
+    out->actor = mb_str(e, e->actor_defs[sp->actor].name_str);
+    out->fail_var = mb_cond_fail_var(e, sp->cond);
+    out->alive = e->spawn_alive[rule];
+    out->max_alive = sp->max_alive;
+    out->cooldown_ms = e->spawn_cd_ms[rule];
+    out->weight = sp->weight;
+    out->blocked = (out->fail_var >= 0 ? MB_SPAWN_BLOCK_COND : 0u) |
+                   (out->alive >= sp->max_alive ? MB_SPAWN_BLOCK_MAX : 0u) |
+                   (out->cooldown_ms ? MB_SPAWN_BLOCK_COOLDOWN : 0u) |
+                   (alive >= e->max_actors ? MB_SPAWN_BLOCK_CAP : 0u);
+    return true;
+}
+
+uint32_t mb_spawn_next_tick_ms(const mb_engine_t *e) {
+    uint32_t interval = spawn_interval_ms(e);
+    return e->spawn_timer_ms < interval ? interval - e->spawn_timer_ms : 0;
 }

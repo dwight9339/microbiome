@@ -225,6 +225,10 @@ typedef struct mb_engine {
 
 mb_err_t mb_engine_init(mb_engine_t *e, const void *pack, size_t pack_size, const mb_config_t *cfg);
 void     mb_engine_update(mb_engine_t *e, uint32_t dt_ms, uint32_t input);
+/* Simulate `seconds` in 100 ms steps without touching the camera or its idle
+ * timer: the warm-up mb_engine_init runs, for hosts that set the time or pins
+ * after init (with cfg.warmup_s = 0) and want the warm-up to reflect them. */
+void     mb_engine_warmup(mb_engine_t *e, uint32_t seconds);
 
 /* Render display rows [y0, y0+h) into `out` (native format, `stride` bytes per row). */
 void     mb_engine_render_strip(mb_engine_t *e, int y0, int h, void *out, size_t stride);
@@ -248,13 +252,26 @@ const char *mb_var_name(const mb_engine_t *e, int idx);
 /* Writes the enum label of the var's current value into buf; returns buf. */
 const char *mb_var_label(const mb_engine_t *e, int idx, char *buf, size_t n);
 int         mb_var_enum_count(const mb_engine_t *e, int idx);      /* 0 if not an enum */
+/* Label for any value of the var (not just the current one); numeric if not an enum label. */
+const char *mb_var_value_label(const mb_engine_t *e, int idx, int32_t value, char *buf, size_t n);
 void        mb_var_pin(mb_engine_t *e, int idx, int32_t value);    /* debug override */
 void        mb_var_unpin(mb_engine_t *e, int idx);
+bool        mb_var_pinned(const mb_engine_t *e, int idx);
 
 typedef struct {
     const char *name, *state;
     int x, y;              /* feet, world px */
     int sx, sy, w, h;      /* sprite rect, display px */
+    int id;                /* unique while alive; stable across frames */
+    int type;              /* actor definition, in pack order */
+    int state_index;       /* local state, in pack order */
+    int spawn_rule;        /* in pack order */
+    int tx, ty;            /* movement target, world px */
+    uint32_t state_ms;     /* time spent in the current state */
+    uint32_t state_dur_ms; /* planned duration; 0 = until the movement completes */
+    uint32_t age_ms;
+    bool leaving;          /* despawning (in its leave state) */
+    bool face_left;
 } mb_actor_info_t;
 
 int  mb_actor_count(const mb_engine_t *e);
@@ -263,6 +280,30 @@ bool mb_actor_info(const mb_engine_t *e, int nth, mb_actor_info_t *out);
 void mb_world_to_display(const mb_engine_t *e, int wx, int wy, int *dx, int *dy);
 /* Point the camera so world (x, y) is centred. */
 void mb_camera_center(mb_engine_t *e, int wx, int wy);
+/* The viewport in world px: top-left corner and size. */
+void mb_camera_view(const mb_engine_t *e, int *x, int *y, int *w, int *h);
+void mb_get_date(const mb_engine_t *e, uint16_t *year, uint8_t *month, uint8_t *day);
+
+/* Why a spawn rule is or isn't eligible right now (bitmask; 0 = eligible). */
+enum {
+    MB_SPAWN_BLOCK_COND     = 1u << 0, /* its `when` condition is false */
+    MB_SPAWN_BLOCK_MAX      = 1u << 1, /* `max` of its actors are alive */
+    MB_SPAWN_BLOCK_COOLDOWN = 1u << 2, /* still cooling down */
+    MB_SPAWN_BLOCK_CAP      = 1u << 3, /* the world's max_actors is reached */
+};
+
+typedef struct {
+    const char *actor;     /* actor definition name */
+    uint32_t blocked;      /* MB_SPAWN_BLOCK_* */
+    int fail_var;          /* with BLOCK_COND: the first var whose clause fails, else -1 */
+    int alive, max_alive;
+    uint32_t cooldown_ms;  /* remaining */
+    int weight;
+} mb_spawn_info_t;
+
+int      mb_spawn_count(const mb_engine_t *e);
+bool     mb_spawn_info(const mb_engine_t *e, int rule, mb_spawn_info_t *out);
+uint32_t mb_spawn_next_tick_ms(const mb_engine_t *e);  /* until the next spawn roll */
 
 #ifdef __cplusplus
 }

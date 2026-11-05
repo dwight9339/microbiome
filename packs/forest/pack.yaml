@@ -3,6 +3,7 @@
 # All art in art/ is generated placeholder art (tools/placeholder_art.py).
 # Replace any file with real art of the same size / frame layout and rebuild.
 # Schema reference: docs/pack-format.md
+# yaml-language-server: $schema=../../tools/packc/pack.schema.json
 
 name: Forest
 

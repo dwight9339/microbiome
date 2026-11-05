@@ -19,6 +19,19 @@ void mb_camera_center(mb_engine_t *e, int wx, int wy) {
     clamp_camera(e);
 }
 
+void mb_camera_view(const mb_engine_t *e, int *x, int *y, int *w, int *h) {
+    *x = e->cam_x >> 8;
+    *y = e->cam_y >> 8;
+    *w = e->view_w;
+    *h = e->view_h;
+}
+
+void mb_get_date(const mb_engine_t *e, uint16_t *year, uint8_t *month, uint8_t *day) {
+    *year = e->year;
+    *month = e->month;
+    *day = e->mday;
+}
+
 void mb_world_to_display(const mb_engine_t *e, int wx, int wy, int *dx, int *dy) {
     *dx = (wx - (e->cam_x >> 8)) * e->scale;
     *dy = (wy - (e->cam_y >> 8)) * e->scale;
@@ -103,6 +116,11 @@ void mb_engine_update(mb_engine_t *e, uint32_t dt_ms, uint32_t input) {
     mb_actors_sort(e);
 }
 
+void mb_engine_warmup(mb_engine_t *e, uint32_t seconds) {
+    for (uint32_t t = 0; t < seconds * 10u; t++) simulate(e, 100);
+    mb_actors_sort(e);
+}
+
 mb_err_t mb_engine_init(mb_engine_t *e, const void *pack, size_t pack_size, const mb_config_t *cfg) {
     memset(e, 0, sizeof *e);
     mb_err_t err = mb_pack_bind(e, pack, pack_size);
@@ -147,7 +165,6 @@ mb_err_t mb_engine_init(mb_engine_t *e, const void *pack, size_t pack_size, cons
     mb_palette_update(e, true);
     mb_particles_init(e);
 
-    for (uint32_t t = 0; t < cfg->warmup_s * 10u; t++) simulate(e, 100);
-    mb_actors_sort(e);
+    mb_engine_warmup(e, cfg->warmup_s);
     return MB_OK;
 }

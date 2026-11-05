@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>microbiome viewer</title>
+<style>
+  :root {
+    --bg: #f4f2ee; --panel: #ffffff; --text: #23211d; --muted: #6b665d; --line: #dedad2;
+    --accent: #2f6f5e; --ok: #2f7d4a; --warn: #9a6a12; --stage: #1b1c1f;
+    --ov-actor: #ffd23f; --ov-place: #6ee7f9; --ov-lane: #a78bfa; --ov-obstacle: #fb7185;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #151618; --panel: #1e2023; --text: #e8e6e1; --muted: #9a958c; --line: #33363a;
+      --accent: #6cc3a8; --ok: #6cc38a; --warn: #e0b04f; --stage: #0c0d0e; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #151618; --panel: #1e2023; --text: #e8e6e1; --muted: #9a958c; --line: #33363a;
+    --accent: #6cc3a8; --ok: #6cc38a; --warn: #e0b04f; --stage: #0c0d0e; color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, sans-serif; }
+  main { display: grid; grid-template-columns: minmax(0, 1fr) 320px; min-height: 100vh; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+  #stage { background: var(--stage); display: grid; place-items: center; padding: 16px; position: relative; min-height: 50vh; }
+  #stage.drop { outline: 3px dashed var(--accent); outline-offset: -12px; }
+  #frame { position: relative; line-height: 0; }
+  #frame canvas { image-rendering: pixelated; display: block; max-width: 100%; }
+  #overlay { position: absolute; inset: 0; pointer-events: none; }
+  #hint { position: absolute; bottom: 10px; left: 16px; right: 16px; color: #9a958c; font-size: 12px; text-align: center; }
+  aside { background: var(--panel); border-left: 1px solid var(--line); padding: 16px; overflow-y: auto; max-height: 100vh; }
+  @media (max-width: 860px) { aside { border-left: 0; border-top: 1px solid var(--line); max-height: none; } }
+  h1 { font-size: 16px; margin: 0 0 2px; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 18px 0 8px; }
+  .sub { color: var(--muted); font-size: 12px; }
+  label.row { display: grid; grid-template-columns: 84px 1fr; align-items: center; gap: 8px; margin: 6px 0; }
+  select, input[type=range] { width: 100%; }
+  select { background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; font: inherit; }
+  .check { display: flex; gap: 8px; align-items: center; margin: 6px 0; }
+  .clock { font-variant-numeric: tabular-nums; font-size: 22px; font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  td { padding: 3px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td.n { text-align: right; font-variant-numeric: tabular-nums; }
+  .ok { color: var(--ok); } .warn { color: var(--warn); }
+  #error { color: var(--warn); white-space: pre-wrap; }
+  dl { display: grid; grid-template-columns: 90px 1fr; gap: 2px 8px; margin: 0; font-size: 12px; }
+  dt { color: var(--muted); } dd { margin: 0; font-variant-numeric: tabular-nums; }
+  button { font: inherit; border: 1px solid var(--line); background: var(--bg); color: var(--text); border-radius: 6px; padding: 3px 10px; cursor: pointer; }
+</style>
+</head>
+<body>
+<main>
+  <div id="stage">
+    <div id="frame"><canvas id="screen" width="320" height="240"></canvas><canvas id="overlay"></canvas></div>
+    <div id="hint">Arrow keys pan · click an animal to inspect it · drop a .mbp file to load it (dropping again keeps the view)</div>
+  </div>
+  <aside>
+    <h1 id="title">microbiome</h1>
+    <div class="sub" id="meta">loading…</div>
+    <div id="error"></div>
+
+    <h2>Clock</h2>
+    <div class="clock" id="clock">--:--</div>
+    <label class="row">Time <input type="range" id="time" min="0" max="1439" step="1"></label>
+    <label class="row">Speed
+      <select id="speed"><option value="1">1×</option><option value="60">60×</option><option value="600">600×</option></select>
+    </label>
+
+    <h2>Variables</h2>
+    <div id="vars"></div>
+
+    <h2>Display</h2>
+    <label class="row">Size
+      <select id="size">
+        <option>320x240</option><option>240x320</option><option>480x480</option><option>640x480</option><option value="panorama">whole world</option>
+      </select>
+    </label>
+    <label class="check"><input type="checkbox" id="lcd"> RGB565 colours (as the LCD shows them)</label>
+    <label class="check"><input type="checkbox" id="debug" checked> Debug overlay</label>
+
+    <h2>Spawn rules</h2>
+    <table id="spawns"></table>
+    <div class="sub" id="nextSpawn"></div>
+
+    <h2>Selected animal</h2>
+    <div id="selected" class="sub">none</div>
+  </aside>
+</main>
+<script type="module">
+import { loadEngine, Input, formatClock } from "./microbiome.js";
+
+const $ = (id) => document.getElementById(id);
+const screen = $("screen"), overlay = $("overlay");
+const ctx = screen.getContext("2d"), octx = overlay.getContext("2d");
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+const engine = await loadEngine(new URL("./microbiome.wasm", import.meta.url));
+let pack = null, packName = "", selected = 0, dragging = false, held = 0;
+
+function displayOptions() {
+  const v = $("size").value;
+  if (v === "panorama") return { width: engine.info?.world[0] ?? 1280, height: engine.info?.world[1] ?? 300, scale: 1 };
+  const [w, h] = v.split("x").map(Number);
+  return { width: w, height: h, scale: 0 };
+}
+
+function load(bytes, name, keepView) {
+  $("error").textContent = "";
+  try {
+    const panorama = $("size").value === "panorama";
+    if (!keepView && panorama) engine.load(bytes, { warmup: 0 }); // learn the world size
+    let info = engine.load(bytes, { ...displayOptions(), lcd565: $("lcd").checked, keepView });
+    // A dropped pack keeps the view but may have a different world size: the
+    // panorama is only known once it's loaded, so reload at the right size.
+    if (panorama && (info.display[0] !== info.world[0] || info.display[1] !== info.world[1]))
+      info = engine.load(bytes, { ...displayOptions(), lcd565: $("lcd").checked, keepView: true });
+    pack = bytes;
+    packName = name;
+    screen.width = info.display[0];
+    screen.height = info.display[1];
+    fit();
+    buildVars();
+    $("title").textContent = info.name || name;
+    $("meta").textContent = `${name} · ${(info.packSize / 1024).toFixed(0)} KiB · world ${info.world.join("×")} · ` +
+      `display ${info.display.join("×")} at ${info.scale}× → view ${info.view.join("×")}`;
+  } catch (e) {
+    $("error").textContent = `${name}: ${e.message}`;
+  }
+}
+
+// Integer CSS zoom that fits the stage, so pixels stay square.
+function fit() {
+  const stage = $("stage").getBoundingClientRect();
+  const z = Math.max(1, Math.floor(Math.min((stage.width - 32) / screen.width, (stage.height - 64) / screen.height)));
+  for (const c of [screen, overlay]) {
+    c.style.width = `${screen.width * z}px`;
+    c.style.height = `${screen.height * z}px`;
+  }
+  overlay.width = screen.width * z;
+  overlay.height = screen.height * z;
+}
+addEventListener("resize", () => engine.loaded && fit());
+
+function buildVars() {
+  const box = $("vars");
+  box.textContent = "";
+  engine.info.vars.forEach((v, i) => {
+    if (!v.labels.length) return; // enums only; the clock drives the numeric ones
+    const row = document.createElement("label");
+    row.className = "row";
+    row.textContent = v.name;
+    const sel = document.createElement("select");
+    sel.dataset.var = String(i);
+    sel.add(new Option("auto", ""));
+    for (const l of v.labels) sel.add(new Option(l, l));
+    sel.addEventListener("change", () => (sel.value ? engine.pin(v.name, sel.value) : engine.unpin(v.name)));
+    row.append(sel);
+    box.append(row);
+  });
+}
+
+function drawOverlay(state) {
+  const z = overlay.width / screen.width, s = engine.info.scale * z;
+  octx.clearRect(0, 0, overlay.width, overlay.height);
+  if (!$("debug").checked) return;
+  const [cx, cy] = state.camera;
+  const X = (wx) => (wx - cx) * s, Y = (wy) => (wy - cy) * s;
+  octx.lineWidth = 1;
+  octx.font = "11px system-ui, sans-serif";
+  octx.setLineDash([4, 4]);
+  octx.strokeStyle = css("--ov-lane");
+  for (const l of engine.info.lanes) {
+    octx.strokeRect(X(0) + 0.5, Y(l.y[0]) + 0.5, engine.info.world[0] * s, (l.y[1] - l.y[0]) * s);
+  }
+  octx.setLineDash([]);
+  octx.strokeStyle = css("--ov-obstacle");
+  for (const o of engine.info.obstacles) {
+    const [x0, y0, x1, y1] = o.box;
+    octx.beginPath();
+    octx.ellipse(X((x0 + x1) / 2), Y((y0 + y1) / 2), ((x1 - x0) / 2) * s, ((y1 - y0) / 2) * s, 0, 0, Math.PI * 2);
+    octx.stroke();
+  }
+  octx.fillStyle = octx.strokeStyle = css("--ov-place");
+  for (const p of engine.info.places) {
+    const x = X(p.at[0]), y = Y(p.at[1]);
+    octx.fillRect(x - 2, y - 2, 5, 5);
+    if (p.spread) octx.strokeRect(X(p.at[0] - p.spread) + 0.5, y - 4.5, p.spread * 2 * s, 9);
+    octx.fillText(p.name, x + 5, y - 5);
+  }
+  for (const a of state.actors) {
+    const [x, y, w, h] = a.rect.map((v) => v * z);
+    octx.strokeStyle = octx.fillStyle = css("--ov-actor");
+    octx.lineWidth = a.id === selected ? 3 : 1;
+    octx.strokeRect(x + 0.5, y + 0.5, w, h);
+    octx.fillText(`${a.name}: ${a.state}`, x, y - 4);
+    if (a.id === selected) {
+      octx.setLineDash([3, 3]);
+      octx.beginPath();
+      octx.moveTo(X(a.x), Y(a.y));
+      octx.lineTo(X(a.target[0]), Y(a.target[1]));
+      octx.stroke();
+      octx.setLineDash([]);
+    }
+  }
+}
+
+function updatePanel(state) {
+  $("clock").textContent = formatClock(state.minute);
+  if (!dragging) $("time").value = state.minute;
+  for (const sel of $("vars").querySelectorAll("select")) {
+    const v = state.vars[+sel.dataset.var];
+    if (document.activeElement !== sel) sel.value = v.pinned ? v.label : "";
+    sel.title = `now: ${v.label}`;
+    sel.options[0].text = `auto (${v.label})`;
+  }
+  // Names come from the pack, which may be any file someone drops here:
+  // build nodes and set textContent, never parse pack strings as HTML.
+  $("spawns").replaceChildren(...state.spawns.flatMap((s, i) => {
+    if (!s) return [];
+    const why = s.blocked.map((b) => (b === "when" ? `when (${s.failVar})` : b === "cooldown" ? `cooldown ${Math.ceil(s.cooldownMs / 1000)}s` : b));
+    return [el("tr", {}, [
+      el("td", {}, engine.info.spawns[i].actor),
+      el("td", { className: "n" }, `${s.alive}/${s.max}`),
+      el("td", { className: why.length ? "warn" : "ok" }, why.length ? why.join(", ") : "eligible"),
+    ])];
+  }));
+  $("nextSpawn").textContent = `next spawn roll in ${(state.nextSpawnMs / 1000).toFixed(1)} s · ${state.actors.length} animals`;
+  const a = state.actors.find((x) => x.id === selected);
+  if (!a) {
+    $("selected").textContent = "none";
+    return;
+  }
+  const facts = [
+    ["animal", `${a.name} #${a.id}`],
+    ["state", `${a.state}${a.leaving ? " (leaving)" : ""}`],
+    ["in state", `${(a.stateMs / 1000).toFixed(1)} s${a.stateDurMs ? ` of ${(a.stateDurMs / 1000).toFixed(1)}` : " (until arrival)"}`],
+    ["feet", `${a.x}, ${a.y}`],
+    ["target", a.target.join(", ")],
+    ["age", `${(a.ageMs / 1000).toFixed(0)} s`],
+    ["spawn rule", `#${a.spawnRule}`],
+  ];
+  $("selected").replaceChildren(el("dl", {}, facts.flatMap(([k, v]) => [el("dt", {}, k), el("dd", {}, v)])));
+}
+
+function el(tag, props, children) {
+  const node = Object.assign(document.createElement(tag), props);
+  if (typeof children === "string") node.textContent = children;
+  else node.append(...children);
+  return node;
+}
+
+let last = performance.now(), panelMs = 0;
+function frame(now) {
+  const dt = Math.min(250, now - last);
+  last = now;
+  if (engine.loaded) {
+    engine.update(dt, held);
+    engine.draw(ctx);
+    // state() builds and parses JSON: only fetch it when something uses it.
+    const panelDue = (panelMs += dt) > 200;
+    if ($("debug").checked || panelDue) {
+      const state = engine.state();
+      drawOverlay(state);
+      if (panelDue) { panelMs = 0; updatePanel(state); }
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+// ---- input
+const keys = { ArrowLeft: Input.LEFT, ArrowRight: Input.RIGHT, ArrowUp: Input.UP, ArrowDown: Input.DOWN, z: Input.A, x: Input.B };
+addEventListener("keydown", (e) => {
+  if (keys[e.key] && !(e.target instanceof HTMLSelectElement || e.target instanceof HTMLInputElement)) {
+    held |= keys[e.key];
+    e.preventDefault();
+  }
+});
+addEventListener("keyup", (e) => { if (keys[e.key]) held &= ~keys[e.key]; });
+addEventListener("blur", () => (held = 0));
+
+$("time").addEventListener("input", (e) => { dragging = true; engine.setTime(+e.target.value); });
+$("time").addEventListener("change", () => (dragging = false));
+$("speed").addEventListener("change", (e) => engine.setTimeScale(+e.target.value));
+$("size").addEventListener("change", () => pack && load(pack, packName, true));
+$("lcd").addEventListener("change", () => pack && load(pack, packName, true));
+$("debug").addEventListener("change", () => engine.loaded && drawOverlay(engine.state()));
+
+screen.addEventListener("click", (e) => {
+  if (!engine.loaded) return;
+  const r = screen.getBoundingClientRect();
+  const x = ((e.clientX - r.left) / r.width) * screen.width, y = ((e.clientY - r.top) / r.height) * screen.height;
+  const hit = engine.state().actors.reverse().find((a) => x >= a.rect[0] && x < a.rect[0] + a.rect[2] && y >= a.rect[1] && y < a.rect[1] + a.rect[3]);
+  selected = hit ? hit.id : 0;
+});
+
+const stage = $("stage");
+stage.addEventListener("dragover", (e) => { e.preventDefault(); stage.classList.add("drop"); });
+stage.addEventListener("dragleave", () => stage.classList.remove("drop"));
+stage.addEventListener("drop", async (e) => {
+  e.preventDefault();
+  stage.classList.remove("drop");
+  const file = e.dataTransfer.files[0];
+  if (file) load(new Uint8Array(await file.arrayBuffer()), file.name, engine.loaded);
+});
+
+// ---- start
+const packUrl = new URLSearchParams(location.search).get("pack") ?? "forest.mbp";
+try {
+  const res = await fetch(packUrl);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  load(new Uint8Array(await res.arrayBuffer()), packUrl.split("/").pop(), false);
+} catch (e) {
+  $("error").textContent = `Could not fetch ${packUrl} (${e.message}). Drop a .mbp file here.`;
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
