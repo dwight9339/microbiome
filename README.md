@@ -174,3 +174,20 @@ If the picture is mirrored, rotated or has inverted colours, change
 | `docs/architecture.md` | How the engine works and how to port it. |
 | `docs/pack-format.md` | Writing packs: the YAML schema, behaviours, and art requirements. |
 | `docs/studio.md` | Plan for microbiome Studio, a desktop/browser scene editor. |
+
+## Product vision and roadmaps
+
+Microbiome is planned as three connected products: Engine & Firmware, Studio
+(world creation), and a separate Companion desktop app (devices, updates, worlds).
+
+- [Project vision](docs/vision.md)
+- [Unified three-track roadmap](docs/roadmap.md)
+- [Christmas 2026 gift-first plan](docs/gift-2026.md)
+- [Engine & Firmware roadmap](docs/roadmaps/engine-firmware.md)
+- [Studio roadmap](docs/roadmaps/studio.md)
+- [Companion roadmap](docs/roadmaps/companion.md)
+- [Ideas and discovery backlog](docs/ideas.md)
+
+The immediate target is **Friday, December 18, 2026**: one gift-ready custom
+PCB/enclosure, one authored world, a minimum usable Studio, and reliable firmware.
+The new docs are drafts and should be reviewed before scope is treated as fixed.

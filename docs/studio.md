@@ -1,5 +1,8 @@
 # microbiome Studio
 
+> **Planning note (Nov 4, 2026):** This document retains the long-term Studio design. The [unified roadmap](roadmap.md), [Gift 2026 plan](gift-2026.md), and [Studio track](roadmaps/studio.md) take precedence for the December 18 gift target. Device flashing, firmware updates, library and device configuration belong to the separate [Companion track](roadmaps/companion.md); Studio can hand off a built world. Phase 0 is implemented on the still-open studio-phase0 PR #2, not yet merged into main.
+
+
 A desktop and browser app for building packs visually. You see the scene as the
 device would show it, and you edit layers, places, lanes, animals and lighting
 by working on that view, with no YAML/compile/reload loop in between.
@@ -70,10 +73,11 @@ and the decisions behind it. Update it as they change.
 - Engine limits (32 actors, 16 layers, 8 obstacles…), and `packc` errors and
   warnings linked to the field or canvas object they refer to.
 
-**5. Getting it onto the device**
-- Write the `.uf2` to a BOOTSEL drive.
-- Use the USB serial console (`time`, `date`, `set`, `stats`) as a remote
-  control for the real device, side by side with the preview.
+**5. Handing a world to the device utility**
+- Export a compiled world and show a clear **Send to Companion** action when available.
+- The separate Companion app owns device setup, world installation, UF2 flashing,
+  firmware updates, serial configuration, and recovery. For Christmas 2026,
+  the documented manual BOOTSEL/UF2 path is an acceptable interim workflow.
 
 ## Architecture
 
@@ -85,12 +89,12 @@ studio/                            (TypeScript UI; same bundle on desktop and we
  ├─ schema ───────────> tools/packc/pack.schema.json  (forms, autocomplete, validation)
  ├─ compile ──────────> packc   desktop: Python sidecar · web: Pyodide (see below)
  └─ host adapter
-      ├─ desktop (Tauri/Rust): files, file watching, packc sidecar, UF2 copy, serial
-      └─ web: File System Access API / drag-and-drop, Pyodide, Web Serial
+      ├─ desktop (Tauri/Rust): files, file watching, packc sidecar, export
+      └─ web: File System Access API / drag-and-drop, Pyodide
 ```
 
 The UI talks to the outside world only through a small **host adapter**
-interface: read and write pack files, watch for changes, compile, flash, serial.
+interface: read and write pack files, watch for changes, compile, and export.
 Tauri implements it in Rust and the web build implements it with browser APIs.
 Everything above the adapter is shared, which is what makes browser hosting
 cheap.
@@ -139,7 +143,7 @@ The JS wrapper does this (`engine.load(bytes, { keepView: true })`).
 | **2** | Canvas editing: places, lanes, obstacles, layers, saved back to YAML with comments intact |
 | **3** | Behaviour: state-machine graph, spawn table with "why not?", lighting timeline |
 | **4** | Assets and budgets: sprite sheet tool, palette manager, size meters |
-| **5** | Device: flash a UF2, serial remote control (desktop; Web Serial in Chromium browsers) |
+| **5** | Export and hand-off to Companion. The dedicated Companion app owns flashing, device configuration, and firmware updates. |
 
 Phase 1 alone replaces `mbsim` + `packc --watch` for most iteration and is a
 good point to decide whether the rest is worth building.
