@@ -1,11 +1,11 @@
 # Studio Roadmap (draft)
 
 **Product promise:** a creator can make, preview and save a living world visually, using the actual engine.  
-**Links:** [Vision](../vision.md) | [Unified roadmap](../roadmap.md) | [Gift 2026 dates](../gift-2026.md) | [Engine/Firmware](engine-firmware.md) | [Companion](companion.md) | [Detailed Studio concept](../studio.md) (arrives with PR #2).
+**Links:** [Vision](../vision.md) | [Unified roadmap](../roadmap.md) | [Gift 2026 dates](../gift-2026.md) | [Engine/Firmware](engine-firmware.md) | [Companion](companion.md) | [Detailed Studio concept](../studio.md).
 
 ## Baseline
 
-The WebAssembly engine host, introspection API, a minimal browser viewer (time scrubber, variable pins, debug overlay, click-to-inspect) and the pack schema are on PR #2. For hand-editing, `packc --watch` plus `mbsim`'s hot reload already gives edit → save → see the result in about half a second, and the schema gives editor autocomplete for `pack.yaml`. There is no authoring application yet.
+The WebAssembly engine host, introspection API, a minimal browser viewer (time scrubber, variable pins, debug overlay, click-to-inspect) and the pack schema are in main. For hand-editing, `packc --watch` plus `mbsim`'s hot reload already gives edit → save → see the result in about half a second, and the schema gives editor autocomplete for `pack.yaml`. There is no authoring application yet.
 
 ## For the gift: a basic Studio
 

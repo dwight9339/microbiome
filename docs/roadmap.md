@@ -9,7 +9,7 @@
 - [Engine & Firmware track](roadmaps/engine-firmware.md) — simulation, portable application/platform services, RP2350, custom board/enclosure integration.
 - [Studio track](roadmaps/studio.md) — a basic Studio for laying out the gift world, then full visual editing.
 - [Companion track](roadmaps/companion.md) — separate device utility, independent world installation, firmware updates, eventual world sharing.
-- [Longer-term Studio design](studio.md) — detailed concept from the Phase 0 work (arrives with PR #2). Where it differs, the Studio track wins on gift scope and Companion owns device management.
+- [Longer-term Studio design](studio.md) — detailed concept from the Phase 0 work. Where it differs, the Studio track wins on gift scope and Companion owns device management.
 - [Ideas / discovery backlog](ideas.md) — promising uncommitted concepts.
 
 **Status vocabulary:** Now = actively needed for the gift; Planned = accepted goal but not yet underway; Exploring = validate before committing; Later = expressly out of gift scope; Done = verified with evidence. Do not treat a proposed concept as implemented.
@@ -19,7 +19,7 @@
 This is the one place that records what is merged; update it as things land.
 
 - Portable C11 engine, Python pack compiler, SDL simulator, headless renderer and RP2350 firmware exist.
-- WebAssembly preview, introspection, a minimal viewer and the pack schema are on **PR #2 (studio-phase0)**, which is **open**, not yet in main.
+- WebAssembly host, introspection API, a minimal browser viewer and the pack schema are in main (PR #2).
 - RP2350 firmware currently **embeds** a compiled world into the UF2. Independently installing a pack is a later protocol/storage project.
 - A full visual Studio and a standalone Companion application do **not** yet exist.
 - The existing firmware/breadboard target is Pico 2 + ST7789. The **gift plan instead targets an RP2350 Feather on a custom carrier PCB** with the existing TFT and buttons, and optional RTC. Its new GPIO mapping, battery/backlight budget, PCB and enclosure have **not** yet been validated. See [Feather hardware plan](hardware/feather-carrier-2026.md).

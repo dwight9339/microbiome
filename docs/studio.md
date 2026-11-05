@@ -1,6 +1,6 @@
 # microbiome Studio
 
-> **Planning note (Nov 4, 2026):** This document retains the long-term Studio design. The [unified roadmap](roadmap.md), [Gift 2026 plan](gift-2026.md), and [Studio track](roadmaps/studio.md) take precedence for the December 18 gift target. Device flashing, firmware updates, library and device configuration belong to the separate [Companion track](roadmaps/companion.md); Studio can hand off a built world. Phase 0 is implemented on the still-open studio-phase0 PR #2, not yet merged into main.
+> **Planning note:** this document keeps the long-term Studio design. For the gift, the [Studio track](roadmaps/studio.md) takes precedence: a basic Studio (local dev server + the Wasm viewer, drag-to-move editing, comment-preserving save) rather than the Tauri app described below, which is deferred until after Christmas. Device flashing, firmware updates, library and device configuration belong to the separate [Companion track](roadmaps/companion.md); Studio can hand off a built world.
 
 
 A desktop and browser app for building packs visually. You see the scene as the

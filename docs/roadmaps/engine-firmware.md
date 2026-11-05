@@ -6,7 +6,7 @@
 
 ## Current implementation
 
-Portable C11 engine; YAML/PNG -> Python pack compiler -> MBP; clock, weather, actor state machines, spawn rules, tags, affordances, single-lane actors, obstacle avoidance, layer/particle rendering, SDL/headless/RP2350 hosts. The WebAssembly host, introspection and schema are on PR #2 (see the [roadmap baseline](../roadmap.md#current-baseline)). Current actors use a fixed lane and render between background and front scenery; affordance lookup does not check actor reachability. Firmware links the pack into its UF2.
+Portable C11 engine; YAML/PNG -> Python pack compiler -> MBP; clock, weather, actor state machines, spawn rules, tags, affordances, single-lane actors, obstacle avoidance, layer/particle rendering, SDL/headless/RP2350 hosts. The WebAssembly host, introspection API and pack schema are in main. Current actors use a fixed lane and render between background and front scenery; affordance lookup does not check actor reachability. Firmware links the pack into its UF2.
 
 ## GIFT 2026 — Now
 
