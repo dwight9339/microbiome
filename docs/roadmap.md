@@ -20,11 +20,11 @@
 - WebAssembly preview, introspection and pack schema are implemented on **studio-phase0 / PR #2**, but that PR is **open**, not yet in main as of this plan.
 - RP2350 firmware currently **embeds** a compiled world into the UF2. Independently installing a pack is a later protocol/storage project.
 - A full visual Studio and a standalone Companion application do **not** yet exist.
-- The current RP2350 board is a Pico 2 connected to an ST7789 screen; custom PCB and enclosure work is **not** complete.
+- The existing firmware/breadboard target is Pico 2 + ST7789. The **gift plan instead targets an RP2350 Feather on a custom carrier PCB** with the existing TFT and buttons, and optional RTC. Its new GPIO mapping, battery/backlight budget, PCB and enclosure have **not** yet been validated. See [Feather hardware plan](hardware/feather-carrier-2026.md).
 
 ## Priority order through December 18
 
-1. **Gift hardware and build feasibility:** choose proven design, freeze display/pins/inputs, order custom PCB quickly, prototype enclosure and physical assembly.
+1. **Gift hardware and build feasibility:** freeze the RP2350 Feather model, TFT/buttons, LiPo power assumptions and new GPIO map; order a custom carrier PCB quickly, prototype enclosure and physical assembly.
 2. **End-to-end golden path:** create one world -> compile -> preview -> build/install UF2 -> run reliably on the actual device.
 3. **Minimum viable Studio:** enough graphical authoring to build and save one distinct world, using desktop-first implementation and the existing pack compiler. Advanced YAML fallback is acceptable for nonessential settings.
 4. **Small engine vertical slice:** capability-aware reachable affordances, visible bird ground-to-perch-to-ground traversal without respawn, and matching contextual animations.
@@ -49,14 +49,14 @@
 | X4 | Display geometry, memory/flash budgets, and target configuration | Hardware/Firmware -> Studio validations + eventual Companion | Freeze for gift board; expose known limits |
 | X5 | Portable device information, control, storage and update protocol | Firmware -> Companion + Studio hand-off | Define direction; full implementation post-gift |
 | X6 | Separate world pack storage, compatibility/version checks and atomic activation | Firmware -> Companion world install | Later; **not required** to give the gift |
-| X7 | Finished PCB, display wiring, buttons, power, boot access, enclosure tolerances | Hardware -> Firmware + experience | Critical path; prototyping and fabrication parallel with software |
+| X7 | **Feather carrier PCB**, TFT/button wiring, LiPo/regulator/backlight current budget, USB/BOOT access, enclosure tolerances, optional RTC | Hardware -> Firmware + experience | Critical path; revise Pico GPIO mapping, prototype and order in parallel with software |
 
 ## Gift execution gates
 
 | By | Evidence required |
 | --- | --- |
-| **Nov 6** | One target board/display/power concept and gift world concept selected; custom PCB approach decided; Studio minimal scope agreed |
-| **Nov 13** | PCB design reviewed and submitted for fabrication; first enclosure fit draft; a working pack -> preview -> UF2 -> reference hardware path |
+| **Nov 6** | Exact Feather SKU/TFT/battery/inputs and gift world selected; draft Feather GPIO map reviewed; optional RTC decision and Studio minimum scope agreed |
+| **Nov 13** | Feather carrier PCB reviewed and ordered; first enclosure fit draft; Feather-target pack -> preview -> UF2 -> wired hardware path |
 | **Nov 20** | Editable Studio prototype opens a pack and previews changes; engine reachability/transitions prototype evaluated; enclosure prototype tried |
 | **Nov 27** | Studio saves and rebuilds a distinct world; engine slice merged or cut; PCB fabrication/delivery tracked with contingency |
 | **Dec 4** | New world displayed on real hardware; first custom-board bring-up and enclosure fit as parts arrive; remaining defects triaged |
@@ -69,7 +69,7 @@
 
 **Must-have** means the gift cannot be called ready without it. **Should-have** is pursued only when the path to must-have is secure. **Stretch** is cut first. **Later** is not worked before delivery except minimal interface notes. See each track for detailed sorting.
 
-The current largest schedule risks are **custom hardware lead time**, **Studio being at concept/Phase 0 rather than an editor**, and **engine navigation redesign**. Reduce these by ordering hardware early, reusing proven Pico 2/ST7789 circuitry, and implementing only one observable bird/rabbit vertical slice. Do **not** make Companion, over-the-air updates, marketplace, full actor generation, full terrain physics, or a second MCU prerequisites.
+The current largest schedule risks are **custom hardware lead time**, **Studio being at concept/Phase 0 rather than an editor**, and **engine navigation redesign**. Reduce these by ordering hardware early, reusing the existing TFT/buttons but validating the Feather RP2350 pinout and battery power path, and implementing only one observable bird/rabbit vertical slice. Do **not** make Companion, over-the-air updates, marketplace, full actor generation, full terrain physics, or a second MCU prerequisites.
 
 ## How decisions evolve
 

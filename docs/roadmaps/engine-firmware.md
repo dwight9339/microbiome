@@ -12,17 +12,17 @@ Portable C11 engine; YAML/PNG -> Python pack compiler -> MBP; clock, weather, ac
 
 | ID | Delivery | Acceptance evidence | Dependencies |
 | --- | --- | --- | --- |
-| E-G1 | Tested RP2350 reference firmware and reproducible single-world UF2 build | Real screen and buttons work; known-good custom pack boots; timing, color and flash checked | Current core/packc and H-G1 |
+| E-G1 | Tested **Feather RP2350** firmware target and reproducible single-world UF2 build | Existing TFT and buttons work on the Feather with newly mapped SPI/GPIO; known-good custom pack boots; timing, color, flash and power checked | Current core/packc, new Feather board config and H-G1 |
 | E-G2 | **Capability-aware place selection** for one small habitat example | Rabbit cannot select an elevated perch; bird can choose accessible ground/perch targets; no unreachable-target loops | Pack compiler/schema + minimal traversal vocabulary; Studio needs resulting fields |
 | E-G3 | **Continuous bird traversal** between perch and ground | One actor ID persists as bird flies, lands, hops, takes off and perches; on-screen transition visible; deterministic test scenario | E-G2 + location/link model |
 | E-G4 | **Contextual locomotion/animation** for that demo | Flight, landing and hopping/climbing visual changes trigger from surface/mode rather than separate despawned archetypes | E-G3 + sprite/art support |
-| H-G1 | Freeze gift PCB reference, pinout, power/display and enclosure interfaces | Reviewed spec and parts list, PCB fab ordered by Nov 13 | Gift target decision by Nov 6 |
-| H-G2 | Custom PCB + enclosure bring-up | Assembled, button/screen/power/USB access checked; enclosure assembled; final soak and recovery | H-G1 + lead times; firmware E-G1 |
+| H-G1 | Freeze exact **RP2350 Feather** variant, SPI TFT/button wiring and power/battery/optional RTC plan | Tested Feather GPIO/pin map; reviewed carrier and parts list; PCB fab ordered by Nov 13 | Gift target decision by Nov 6; [hardware checklist](../hardware/feather-carrier-2026.md) |
+| H-G2 | Custom **Feather carrier** + enclosure bring-up | Assembled carrier, display, all buttons, USB-C/BOOT and battery charge/power tested; enclosure assembled, measured current, final soak and recovery | H-G1 + lead times; Feather-target firmware E-G1 |
 | E-G5 | Preserve compatibility and diagnostics | Old forest pack still works; CI smoke/parity pass; regression covers reachability, transitions and format version | E-G2–E-G4 |
 
 **Architecture allowance:** Use a narrow route graph or explicit links between ground and branches. A complete terrain engine, generalized multi-plane parallax and actor genetics **must not block** delivery. Prefer the simplest pack encoding consistent with future expansion; document pack-version changes.
 
-**Gift hardware recommendation:** a custom **Pico 2 carrier PCB**, reusing proven RP2350+ST7789 circuitry, plus a custom 3D-printable enclosure. If a bare-chip board is essential, mark the significant schedule risk and decide immediately. Use current embedded-pack UF2 and BOOTSEL flashing for the gift.
+**Gift hardware target:** a custom **carrier PCB for an RP2350-based Feather**, with footprints/connectors for the proven SPI TFT and physical buttons, a custom enclosure, and an **optional** RTC. Reuse the Feather's integrated USB-C and LiPo charging rather than designing a second charger. The existing Pico 2 pin map is not compatible without changes; use the Pico SDK Feather board target and a new device-specific configuration. Validate TFT/backlight power, LiPo wiring and thermal behavior. See [Feather carrier plan](../hardware/feather-carrier-2026.md). Keep the embedded-pack UF2 and BOOTSEL flow for the gift.
 
 ## Should / stretch for gift
 

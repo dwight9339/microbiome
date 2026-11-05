@@ -183,6 +183,7 @@ Microbiome is planned as three connected products: Engine & Firmware, Studio
 - [Project vision](docs/vision.md)
 - [Unified three-track roadmap](docs/roadmap.md)
 - [Christmas 2026 gift-first plan](docs/gift-2026.md)
+- [Feather RP2350 carrier board hardware plan](docs/hardware/feather-carrier-2026.md)
 - [Engine & Firmware roadmap](docs/roadmaps/engine-firmware.md)
 - [Studio roadmap](docs/roadmaps/studio.md)
 - [Companion roadmap](docs/roadmaps/companion.md)
