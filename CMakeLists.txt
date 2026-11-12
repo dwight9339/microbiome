@@ -40,12 +40,15 @@ endif()
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 include(cmake/packs.cmake)
 mb_add_pack(forest ${CMAKE_SOURCE_DIR}/packs/forest ${CMAKE_BINARY_DIR}/forest.mbp)
-add_custom_target(packs ALL DEPENDS ${CMAKE_BINARY_DIR}/forest.mbp)
+mb_add_pack(glade ${CMAKE_SOURCE_DIR}/packs/glade ${CMAKE_BINARY_DIR}/glade.mbp)
+add_custom_target(packs ALL DEPENDS ${CMAKE_BINARY_DIR}/forest.mbp ${CMAKE_BINARY_DIR}/glade.mbp)
 
 # ---- tests -----------------------------------------------------------------
 enable_testing()
 add_test(NAME pack_loads
          COMMAND mbsnap ${CMAKE_BINARY_DIR}/forest.mbp - --info --sim 600)
+add_test(NAME glade_loads
+         COMMAND mbsnap ${CMAKE_BINARY_DIR}/glade.mbp - --info --sim 600)
 add_test(NAME render_night_snow
          COMMAND mbsnap ${CMAKE_BINARY_DIR}/forest.mbp ${CMAKE_BINARY_DIR}/test-night.png
                  --time 22:00 --set weather=precip --set season=winter)

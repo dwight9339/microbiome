@@ -137,8 +137,11 @@ static void plan_route(mb_engine_t *e, mb_actor_t *a) {
         const mb_pk_obstacle_t *ob = &e->obstacles[i];
         for (int c = 0; c < 4; c++) {
             int32_t cx = c & 1 ? ob->x1 + OB_PAD : ob->x0 - OB_PAD;
-            int32_t cy = c & 2 ? ob->y1 + OB_PAD : ob->y0 - OB_PAD;
-            if (cy < ylo || cy > yhi || (cx == sx && cy == sy)) continue;
+            /* A corner outside the lane is pulled into it: still beside the
+             * box, so clear of the obstacle, and it keeps a way round when the
+             * obstacle sits against the lane edge (a lake's far shore). */
+            int32_t cy = mb_clamp(c & 2 ? ob->y1 + OB_PAD : ob->y0 - OB_PAD, ylo, yhi);
+            if (cx == sx && cy == sy) continue;
             bool buried = false;
             for (uint32_t j = 0; j < e->n_obstacles && !buried; j++)
                 buried = (mask >> j & 1u) && ob_contains(&e->obstacles[j], cx, cy);
