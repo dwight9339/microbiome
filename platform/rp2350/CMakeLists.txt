@@ -23,6 +23,9 @@ add_subdirectory(${MB_ROOT}/core core)
 target_compile_definitions(mb_core PUBLIC "MB_HOT=__attribute__((section(\".time_critical.mb\")))")
 target_compile_options(mb_core PRIVATE -O2)
 
+# Use the first Python on PATH (the one with PyYAML/Pillow), not the newest
+# installed: cmake_minimum_required(3.13) otherwise defaults to the latter.
+set(Python3_FIND_STRATEGY LOCATION)
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 include(${MB_ROOT}/cmake/packs.cmake)
 set(PACK_OUT ${CMAKE_BINARY_DIR}/${MB_PACK}.mbp)
