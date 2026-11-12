@@ -1,0 +1,216 @@
+# Glade - the forest animals in a painted lakeside clearing.
+#
+# The scene is one painted image (src/scene.png). prepare_art.py reduces it
+# to 200 colours and splits out the open sky; re-run it after changing the
+# source. The animal sprites are still the placeholders from packs/forest.
+# Schema reference: docs/pack-format.md
+
+name: Glade
+
+world:
+  size: [480, 240]           # the painting's size; a 320x240 screen pans 160 px
+  clear_color: "#000000"
+  camera:
+    start: [240, 120]
+    pan_speed: 140           # px/s while an arrow is held
+    idle_drift: 25s          # then the camera starts gently following animals
+  spawning:
+    interval: 4s
+    chance: 55               # percent per interval
+    max_actors: 12
+
+clock:
+  start: "08:00"             # used when the device has no real-time clock
+  date: "12-24"
+  day_length: 24h            # real time for one simulated day
+
+# ---------------------------------------------------------------------------
+# World variables. minute, hour, month and day are built in.
+vars:
+  phase:
+    step: minute
+    table: {"00:00": night, "05:30": dawn, "07:30": day, "18:00": dusk, "19:45": night}
+  season:
+    step: month
+    table: {1: winter, 3: spring, 6: summer, 9: autumn, 12: winter}
+  weather:
+    markov:
+      step: 20m              # game time between weather rolls
+      states:
+        clear:   {clear: 8, cloudy: 2}
+        cloudy:  {clear: 3, cloudy: 5, precip: 2}
+        precip:  {cloudy: 3, precip: 6}
+
+# ---------------------------------------------------------------------------
+# Lighting: palettes are generated per keyframe and blended by time of day.
+lighting:
+  emissive: ["#ffe98a", "#ffd23f", "#fffbe0"]   # fireflies, owl eyes, stars ignore darkness
+  keyframes:
+    - {at: "00:00", brightness: 0.32, saturation: 0.45, tint: "#5866b8", tint_strength: 0.55}
+    - {at: "05:00", brightness: 0.36, saturation: 0.5,  tint: "#5866b8", tint_strength: 0.5}
+    - {at: "06:15", brightness: 0.78, saturation: 0.85, tint: "#ffb28a", tint_strength: 0.45}
+    - {at: "07:45", brightness: 1.0}
+    - {at: "17:00", brightness: 1.0}
+    - {at: "18:30", brightness: 0.72, saturation: 0.9,  tint: "#ff9a6a", tint_strength: 0.5}
+    - {at: "19:45", brightness: 0.34, saturation: 0.45, tint: "#5866b8", tint_strength: 0.55}
+
+# ---------------------------------------------------------------------------
+# Layers, back to front. Both are world-sized, so they move 1:1 (no parallax:
+# the painting is a single plane). The open sky is its own layer only so that
+# stars can twinkle in the canopy gaps without drawing over the trees.
+layers:
+  - {name: sky,   image: art/sky.png}
+  - {name: scene, image: art/scene.png}
+
+# Bands of y (feet position) actors move within. The ground lane is the
+# clearing, from the back tree line down to the foreground foliage.
+lanes:
+  ground: [124, 212]
+  sky:    [14, 80]
+
+# Points of interest and what they offer, in world (= painting) pixels.
+places:
+  pond_east:    {at: [166, 148], offers: [drink], spread: 3}
+  pond_south:   {at: [120, 188], offers: [drink], spread: 4}
+  left_branch:  {at: [36, 33], offers: [perch], spread: 8}    # spread: visitors pick a spot +/- px
+  right_branch: {at: [418, 31], offers: [perch], spread: 10}
+  burrow:       {at: [446, 180], offers: [burrow]}            # among the right-hand tree's roots
+
+# Areas walkers go around instead of through. The lake runs off the left edge
+# of the painting; the box overhangs it so walkers detour in front (the lane
+# starts below its far shore, so there is no way round behind).
+obstacles:
+  pond: {lane: ground, ellipse: [-20, 116, 165, 190]}
+
+# ---------------------------------------------------------------------------
+# Actors. States are a weighted, randomized state machine; the first state is
+# the initial one. Art faces right unless `faces: left`.
+actors:
+  deer:
+    sheet: art/deer.png
+    frame: [32, 32]
+    tags: [prey, large]
+    lane: ground
+    speed: 14
+    anims:
+      walk:  {frames: 0-3, fps: 6}
+      graze: {frames: 4-5, frame: 600ms}
+      alert: {frames: [6], fps: 1}
+      run:   {frames: 7-9, fps: 12}
+    states:
+      wander: {anim: walk, move: wander, duration: [6s, 14s], next: {graze: 3, drink: 1, wander: 1}}
+      graze:  {anim: graze, duration: [5s, 12s], next: {wander: 2, graze: 1, look: 1}}
+      look:   {anim: alert, duration: [1s, 3s], next: {graze: 1, wander: 1}}
+      drink:  {anim: walk, move: seek drink, next: sip}
+      sip:    {anim: graze, duration: [4s, 8s], next: wander}
+      alert:  {anim: alert, duration: [1s, 2s], next: {flee: 3, graze: 1}}
+      flee:   {anim: run, move: flee, speed: 3.5}
+      leave:  {anim: walk, move: exit}
+    react:
+      - {to: [predator], radius: 90, goto: alert}
+    leave: leave
+    despawn_when: {phase: night}
+    lifetime: 6m
+
+  rabbit:
+    sheet: art/rabbit.png
+    frame: [16, 16]
+    tags: [prey, small]
+    lane: ground
+    speed: 20
+    anims:
+      hop:    {frames: 0-3, fps: 10}
+      nibble: {frames: 4-5, frame: 300ms}
+      alert:  {frames: [6], fps: 1}
+    states:
+      hop:     {anim: hop, move: wander, duration: [2s, 6s], next: {nibble: 3, hop: 1}}
+      nibble:  {anim: nibble, duration: [3s, 9s], next: {hop: 2, nibble: 1}}
+      alert:   {anim: alert, duration: [0.5s, 1.5s], next: flee}
+      flee:    {anim: hop, move: seek burrow, speed: 3, then: despawn}
+      leave:   {anim: hop, move: seek burrow, then: despawn}
+    react:
+      - {to: [predator], radius: 70, goto: alert}
+    leave: leave
+    despawn_when: {phase: night}
+    lifetime: 4m
+
+  fox:
+    sheet: art/fox.png
+    frame: [32, 24]
+    tags: [predator]
+    lane: ground
+    speed: 24
+    anims:
+      trot:  {frames: 0-3, fps: 8}
+      sniff: {frames: 4-5, frame: 400ms}
+    states:
+      trot:  {anim: trot, move: wander, duration: [5s, 12s], next: {sniff: 2, trot: 2, drink: 1}}
+      sniff: {anim: sniff, duration: [2s, 6s], next: trot}
+      drink: {anim: trot, move: seek drink, next: lap}
+      lap:   {anim: sniff, duration: [3s, 6s], next: trot}
+      leave: {anim: trot, move: exit}
+    leave: leave
+    despawn_when: {phase: day}
+    lifetime: 5m
+
+  owl:
+    sheet: art/owl.png
+    frame: [16, 16]
+    anchor: [8, 15]
+    tags: [predator, bird]
+    lane: sky
+    speed: 40
+    anims:
+      perch: {frames: [0], fps: 1}
+      blink: {frames: [1, 0, 1, 0], frame: 150ms, loop: false}
+      fly:   {frames: 2-3, fps: 6}
+    states:
+      arrive: {anim: fly, move: seek perch, next: perch}
+      perch:  {anim: perch, duration: [20s, 60s], next: {perch: 3, blink: 2, roam: 1}}
+      blink:  {anim: blink, duration: [1s, 1s], next: perch}
+      roam:   {anim: fly, move: wander, duration: [5s, 10s], next: arrive}
+      leave:  {anim: fly, move: exit}
+    leave: leave
+    despawn_when: {phase: [dawn, day]}
+
+  songbird:
+    sheet: art/songbird.png
+    frame: [8, 8]
+    anchor: [4, 7]
+    tags: [bird, small]
+    lane: sky
+    speed: 45
+    anims:
+      fly:   {frames: 0-1, fps: 10}
+      perch: {frames: [2], fps: 1}
+      hop:   {frames: [3, 2], frame: 200ms}
+    states:
+      fly:     {anim: fly, move: wander, duration: [4s, 10s], next: {land: 2, fly: 1}}
+      land:    {anim: fly, move: seek perch, next: perched}
+      perched: {anim: perch, duration: [4s, 12s], next: {perched: 1, hop: 1, fly: 2}}
+      hop:     {anim: hop, duration: [1s, 2s], next: perched}
+      flee:    {anim: fly, move: flee, speed: 1.6}
+      leave:   {anim: fly, move: exit}
+    react:
+      - {to: [predator], radius: 60, goto: flee}
+    leave: leave
+    despawn_when: {phase: [dusk, night]}
+    lifetime: 3m
+
+# ---------------------------------------------------------------------------
+# Spawn rules: every interval, one eligible rule is picked by weight.
+spawns:
+  - {actor: deer,     when: {phase: [dawn, day, dusk]}, weight: 3, max: 2, count: [1, 2], cooldown: 90s}
+  - {actor: rabbit,   when: {phase: [dawn, day, dusk]}, weight: 4, max: 3, count: [1, 2], cooldown: 30s, enter: place burrow}
+  - {actor: fox,      when: {phase: [dusk, night, dawn]}, weight: 2, max: 1, cooldown: 3m}
+  - {actor: owl,      when: {phase: night}, weight: 2, max: 1, cooldown: 5m}
+  - {actor: songbird, when: {phase: [dawn, day], weather: [clear, cloudy]}, weight: 3, max: 4, count: [2, 4], cooldown: 60s}
+
+# ---------------------------------------------------------------------------
+# Ambient particles. Velocities in px/s; band is a world y range.
+particles:
+  stars:     {when: {phase: night, weather: clear}, count: 40, color: "#fffbe0", blink: true, band: [0, 66], above: sky}
+  snow:      {when: {weather: precip, season: winter}, count: 90, color: "#f4f8ff", vx: [-4, 4], vy: [12, 22], wobble: 2}
+  rain:      {when: {weather: precip, season: [spring, summer, autumn]}, count: 110, color: "#9fb8d0", vx: [-12, -8], vy: [150, 190]}
+  fireflies: {when: {phase: [dusk, night], season: summer, weather: clear}, count: 24, color: "#ffe98a",
+              vx: [-6, 6], vy: [-4, 4], band: [110, 215], blink: true, wander: true}

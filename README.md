@@ -186,6 +186,7 @@ solid colour) and `run` (resume).
 | `tools/packc/pack.schema.json` | JSON Schema for `pack.yaml` (editor autocomplete, studio forms); `check_schema.py` validates against it. |
 | `tools/placeholder_art.py` | Generates the current placeholder forest art. |
 | `packs/forest/` | The forest pack. |
+| `packs/glade/` | The forest animals in a painted lakeside clearing (`./build/mbsim build/glade.mbp`; firmware: `-DMB_PACK=glade`). |
 | `platform/sdl/` | Desktop simulator with hot reload. |
 | `platform/headless/` | `mbsnap` PNG renderer. |
 | `platform/wasm/` | WebAssembly host, JS API (`microbiome.js`) and web viewer. |

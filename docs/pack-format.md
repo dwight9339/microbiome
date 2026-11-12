@@ -202,8 +202,9 @@ obstacles:                              # areas walkers go around, not through
 
 Actors in that lane never pick a wander target or spawn point inside an
 obstacle, and they detour around it (behind or in front) when the direct
-route crosses it. Detours run 2 px outside the box, so leave that much of the
-lane free above or below the obstacle, otherwise it can't be passed.
+route crosses it. An obstacle may run up against a lane edge, like a lake
+whose far shore is out of reach; walkers then go round the other side. Keep
+at least 2 px of lane free on one side, or nothing can get past it.
 A place that sits on the edge, like a drinking spot on the shore, is fine.
 Draw the obstacle and declare it with the same box. Up to 8 per pack, each
 at most 1024 px per side.
