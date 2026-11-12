@@ -1,4 +1,7 @@
-/* ST7789 driver: SPI command interface + DMA pixel streaming. */
+/* ST7789 / ILI9341 driver: SPI command interface + DMA pixel streaming.
+ * The two controllers share the commands used here (CASET/RASET/RAMWR,
+ * MADCTL, COLMOD); the ILI9341 additionally wants its power and gamma
+ * registers set at boot. */
 #include "st7789.h"
 
 #include "board_config.h"
@@ -6,6 +9,12 @@
 #include "hardware/gpio.h"
 #include "hardware/spi.h"
 #include "pico/stdlib.h"
+
+/* Each GPIO's SPI role is fixed: pin % 4 is RX, CSn, SCK, TX, and the SPI
+ * instance alternates every 8 pins. A clock on an RX pin just stays silent. */
+_Static_assert(LCD_PIN_SCK % 4 == 2, "LCD_PIN_SCK is not an SPI SCK pin (spi0: GP2/6/18/22, spi1: GP10/14/26)");
+_Static_assert(LCD_PIN_MOSI % 4 == 3, "LCD_PIN_MOSI is not an SPI TX pin (spi0: GP3/7/19/23, spi1: GP11/15/27)");
+_Static_assert(LCD_PIN_SCK / 8 % 2 == LCD_PIN_MOSI / 8 % 2, "LCD_PIN_SCK and LCD_PIN_MOSI belong to different SPI blocks");
 
 static int dma_ch = -1;
 
@@ -61,6 +70,34 @@ void lcd_init(void) {
     }
     cmd(0x01, NULL, 0);          /* SWRESET */
     sleep_ms(150);
+#if LCD_CONTROLLER == LCD_ILI9341
+    /* Power, VCOM, frame rate and gamma, from LCDwiki's init for the
+     * MSP3222/MSP3223 3.2" IPS ILI9341V module (ILI9341V_Init.txt).
+     * Encoded as command, argument count, arguments. */
+    static const uint8_t ili9341_init[] = {
+        0xCF, 3, 0x00, 0xC1, 0x30,             /* power control B */
+        0xED, 4, 0x64, 0x03, 0x12, 0x81,       /* power on sequence */
+        0xE8, 3, 0x85, 0x00, 0x78,             /* driver timing A */
+        0xCB, 5, 0x39, 0x2C, 0x00, 0x34, 0x02, /* power control A */
+        0xF7, 1, 0x20,                         /* pump ratio */
+        0xEA, 2, 0x00, 0x00,                   /* driver timing B */
+        0xC0, 1, 0x13,                         /* PWCTR1 */
+        0xC1, 1, 0x13,                         /* PWCTR2 */
+        0xC5, 2, 0x1C, 0x35,                   /* VMCTR1 */
+        0xC7, 1, 0xC8,                         /* VMCTR2 */
+        0xB6, 2, 0x0A, 0xA2,                   /* DFUNCTR */
+        0xF6, 2, 0x01, 0x30,                   /* interface control */
+        0xB1, 2, 0x00, 0x1B,                   /* FRMCTR1: 70 Hz */
+        0xF2, 1, 0x00,                         /* 3-gamma off */
+        0x26, 1, 0x01,                         /* gamma curve 1 */
+        0xE0, 15, 0x0F, 0x35, 0x31, 0x0B, 0x0E, 0x06, 0x49, 0xA7,
+                  0x33, 0x07, 0x0F, 0x03, 0x0C, 0x0A, 0x00, /* GMCTRP1 */
+        0xE1, 15, 0x00, 0x0A, 0x0F, 0x04, 0x11, 0x08, 0x36, 0x58,
+                  0x4D, 0x07, 0x10, 0x0C, 0x32, 0x34, 0x0F, /* GMCTRN1 */
+    };
+    for (size_t i = 0; i < sizeof ili9341_init; i += 2u + ili9341_init[i + 1])
+        cmd(ili9341_init[i], &ili9341_init[i + 2], ili9341_init[i + 1]);
+#endif
     cmd(0x11, NULL, 0);          /* SLPOUT */
     sleep_ms(120);
     cmd1(0x3A, 0x55);            /* COLMOD: 16 bpp */

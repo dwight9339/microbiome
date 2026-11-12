@@ -133,8 +133,12 @@ jobs:
         run: |
           cmake -S platform/rp2350 -B build-rp2350-rtc -G Ninja -DMB_RTC_DS3231=ON
           cmake --build build-rp2350-rtc
+      - name: Build (3.2" ILI9341 board)
+        run: |
+          cmake -S platform/rp2350 -B build-rp2350-ili9341 -G Ninja -DMB_BOARD_CONFIG=boards/ili9341_32.h
+          cmake --build build-rp2350-ili9341
       - name: Size
-        run: arm-none-eabi-size build-rp2350/microbiome.elf build-rp2350-rtc/microbiome.elf
+        run: arm-none-eabi-size build-rp2350/microbiome.elf build-rp2350-rtc/microbiome.elf build-rp2350-ili9341/microbiome.elf
       - name: Upload firmware
         uses: actions/upload-artifact@v4
         with:
@@ -142,3 +146,4 @@ jobs:
           path: |
             build-rp2350/microbiome.uf2
             build-rp2350-rtc/microbiome.uf2
+            build-rp2350-ili9341/microbiome.uf2
