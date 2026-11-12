@@ -1,4 +1,4 @@
-/* microbiome firmware for RP2350 + ST7789.
+/* microbiome firmware for RP2350 + ST7789/ILI9341 SPI LCD.
  *
  * Main loop: read buttons -> update engine -> stream the frame to the LCD in
  * double-buffered DMA strips (render strip N+1 while strip N is on the wire).
@@ -10,6 +10,8 @@
  *   set VAR VALUE       pin a world variable, e.g. "set weather precip"
  *   unset VAR           release it
  *   stats               frame timing
+ *   fill RRGGBB         show a solid colour and pause (display bring-up)
+ *   run                 resume after fill
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -68,6 +70,7 @@ typedef struct {
     uint32_t frames, update_us, render_us, frame_us;
 } stats_t;
 static stats_t st;
+static bool paused;
 
 static void console_exec(char *line) {
     char *cmd = strtok(line, " \t");
@@ -108,6 +111,15 @@ static void console_exec(char *line) {
         }
         mb_var_pin(&eng, idx, atoi(a2));
         printf("ok\n");
+    } else if (!strcmp(cmd, "fill") && a1) {
+        /* Display bring-up: hold a solid colour until "run". */
+        unsigned long rgb = strtoul(a1, NULL, 16);
+        lcd_fill((uint16_t)(((rgb >> 8) & 0xF800) | ((rgb >> 5) & 0x07E0) | ((rgb >> 3) & 0x001F)));
+        paused = true;
+        printf("ok, paused (\"run\" to resume)\n");
+    } else if (!strcmp(cmd, "run")) {
+        paused = false;
+        printf("ok\n");
     } else if (!strcmp(cmd, "stats")) {
         uint32_t n = st.frames ? st.frames : 1;
         printf("%lu frames: update %lu us, render+send %lu us, frame %lu us (%.1f fps), %d actors, %02lu:%02lu\n",
@@ -116,7 +128,7 @@ static void console_exec(char *line) {
                (unsigned long)(mb_day_minute(&eng) / 60), (unsigned long)(mb_day_minute(&eng) % 60));
         memset(&st, 0, sizeof st);
     } else {
-        printf("commands: time HH:MM | date YYYY-MM-DD | speed N | set VAR VALUE | unset VAR | stats\n");
+        printf("commands: time HH:MM | date YYYY-MM-DD | speed N | set VAR VALUE | unset VAR | stats | fill RRGGBB | run\n");
     }
 }
 
@@ -181,6 +193,11 @@ int main(void) {
         uint64_t t0 = time_us_64();
         uint32_t now = to_ms_since_boot(get_absolute_time());
         console_poll();
+        if (paused) {
+            last = now;
+            sleep_ms(10);
+            continue;
+        }
         mb_engine_update(&eng, now - last, buttons_read());
         last = now;
         uint64_t t1 = time_us_64();

@@ -16,7 +16,7 @@ to a compact binary blob that the engine reads in place from flash.
                                                        ├─ platform/sdl       desktop simulator
                                                        ├─ platform/headless  PNG snapshots / tests
                                                        ├─ platform/wasm      browser viewer, future studio
-                                                       └─ platform/rp2350    Pico 2 + ST7789 firmware
+                                                       └─ platform/rp2350    Pico 2 + ST7789/ILI9341 firmware
 ```
 
 ## Quick start (desktop)
@@ -154,8 +154,27 @@ Default wiring for a 2.0" 240×320 ST7789V module (all pins in
 | BLK | GP21 | | | |
 
 If the picture is mirrored, rotated or has inverted colours, change
-`LCD_MADCTL` / `LCD_INVERT` in `board_config.h`. The USB serial console takes
-`time 07:30`, `date 2026-12-25`, `speed 60`, `set weather precip`, `stats`.
+`LCD_MADCTL` / `LCD_INVERT` in `board_config.h`.
+
+**Other boards** go in a small header under `platform/rp2350/boards/` that
+overrides only what differs, selected with `-DMB_BOARD_CONFIG=boards/<file>.h`.
+`boards/ili9341_32.h` is LCDwiki's MSP3223, a 3.2" 240×320 IPS ILI9341V module.
+Its CI build is `build-rp2350-ili9341/microbiome.uf2` in the firmware artifact.
+
+| Module pin | Pico 2 | | Module pin | Pico 2 |
+| --- | --- | --- | --- | --- |
+| 1 VCC | VBUS (40) | | 5 RS | GP17 |
+| 2 GND | GND | | 6 SDI (MOSI) | GP19 |
+| 3 CS | GP21 | | 7 SCK | GP18 |
+| 4 RST | GP20 | | 8 LED | GP16 |
+
+SPI pins are fixed in silicon: on SPI0, SCK must be GP2/6/18/22 and MOSI
+GP3/7/19/23, and the firmware refuses to build otherwise. CS, RS/DC, RST and
+LED can be any GPIO.
+
+The USB serial console takes `time 07:30`, `date 2026-12-25`, `speed 60`,
+`set weather precip`, `stats`, and for display bring-up `fill FF0000` (hold a
+solid colour) and `run` (resume).
 
 ## Repository layout
 
@@ -170,7 +189,7 @@ If the picture is mirrored, rotated or has inverted colours, change
 | `platform/sdl/` | Desktop simulator with hot reload. |
 | `platform/headless/` | `mbsnap` PNG renderer. |
 | `platform/wasm/` | WebAssembly host, JS API (`microbiome.js`) and web viewer. |
-| `platform/rp2350/` | Pico 2 firmware: ST7789 DMA driver, buttons, optional DS3231, serial console. |
+| `platform/rp2350/` | Pico 2 firmware: ST7789/ILI9341 DMA driver, board configs, buttons, optional DS3231, serial console. |
 | `docs/architecture.md` | How the engine works and how to port it. |
 | `docs/pack-format.md` | Writing packs: the YAML schema, behaviours, and art requirements. |
 | `docs/studio.md` | Plan for microbiome Studio, a desktop/browser scene editor. |
