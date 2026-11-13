@@ -1,0 +1,33 @@
+{
+  "pcb_mm": [
+    96.5,
+    60.30000000000001,
+    1.6
+  ],
+  "outer_width_mm": 105.7,
+  "direct_solder_gap_mm": {
+    "display": 2.6,
+    "feather": 2.6
+  },
+  "overlap_tolerance_mm3": 0.01,
+  "button_motion_mm": 0.6,
+  "overlaps": {
+    "rear_shell": [],
+    "front_bezel": [],
+    "battery/electronics": [],
+    "cap_centre/rest": [],
+    "cap_centre/pressed": [],
+    "cap_up/rest": [],
+    "cap_up/pressed": [],
+    "cap_down/rest": [],
+    "cap_down/pressed": [],
+    "cap_left/rest": [],
+    "cap_left/pressed": [],
+    "cap_right/rest": [],
+    "cap_right/pressed": [],
+    "spacer_0/electronics": [],
+    "spacer_1/electronics": [],
+    "spacer_2/electronics": [],
+    "spacer_3/electronics": []
+  }
+}
