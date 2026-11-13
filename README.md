@@ -3,7 +3,7 @@
 An embedded ecosystem: a small, mostly-ambient world drawn on a little screen,
 where animals wander in and out according to time of day, season, weather and
 chance, and react to each other. You pan around it with arrow buttons; when you
-stop, the camera drifts after whatever is interesting.
+stop, the camera slowly and occasionally drifts toward whatever is interesting.
 
 The engine knows nothing about forests or deer. Everything in a scene (art,
 layers, animals, their behaviour, spawn rules, lighting, weather) is

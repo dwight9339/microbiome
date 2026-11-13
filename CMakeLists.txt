@@ -49,6 +49,14 @@ add_test(NAME pack_loads
          COMMAND mbsnap ${CMAKE_BINARY_DIR}/forest.mbp - --info --sim 600)
 add_test(NAME glade_loads
          COMMAND mbsnap ${CMAKE_BINARY_DIR}/glade.mbp - --info --sim 600)
+add_executable(camera_test tests/camera_test.c)
+target_link_libraries(camera_test PRIVATE mb_core)
+foreach(_pack forest glade)
+    foreach(_seed 1 2 3)
+        add_test(NAME camera_${_pack}_${_seed}
+                 COMMAND camera_test ${CMAKE_BINARY_DIR}/${_pack}.mbp ${_seed})
+    endforeach()
+endforeach()
 add_test(NAME render_night_snow
          COMMAND mbsnap ${CMAKE_BINARY_DIR}/forest.mbp ${CMAKE_BINARY_DIR}/test-night.png
                  --time 22:00 --set weather=precip --set season=winter)

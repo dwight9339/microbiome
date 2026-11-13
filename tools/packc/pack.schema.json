@@ -155,7 +155,8 @@
           "properties": {
             "start": { "$ref": "#/$defs/point", "description": "Initial camera centre." },
             "pan_speed": { "type": "integer", "minimum": 0, "description": "px/s while an arrow is held." },
-            "idle_drift": { "$ref": "#/$defs/duration", "description": "Autopilot after this long without input; 0 = off." }
+            "idle_drift": { "$ref": "#/$defs/duration", "description": "Autopilot after this long without input; 0 = off." },
+            "drift_speed": { "type": "number", "minimum": 0.1, "maximum": 25.5, "description": "Autopilot glide speed in px/s (default 3). Keep it low so the view changes without drawing attention." }
           }
         },
         "spawning": {

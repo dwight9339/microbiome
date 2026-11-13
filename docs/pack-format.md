@@ -89,6 +89,7 @@ world:
     start: [640, 200]          # initial camera centre
     pan_speed: 140             # px/s
     idle_drift: 25s            # autopilot after this long without input; 0 = off
+    drift_speed: 3             # autopilot glide speed, px/s (0.1-25.5, default 3)
   spawning:
     interval: 4s               # how often to try spawning
     chance: 55                 # percent chance per try

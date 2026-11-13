@@ -37,7 +37,7 @@ SECTIONS = [
 FMT = {
     "header":    "<IHHII",
     "section":   "<II",
-    "world":     "<HHHBBHHhhHHIBBBxI",
+    "world":     "<HHHBBHHhhHHIBBBBI",
     "palette":   "<HH256I",
     "images":    "<HHI",
     "layers":    "<HHhhhhI",
@@ -645,6 +645,11 @@ class Builder:
         m = re.fullmatch(r"(\d{1,2})-(\d{1,2})", date)
         if not m:
             fail("clock.date", "use 'MM-DD'")
+        drift = cam.get("drift_speed")  # px/s; stored in 0.1 px/s, 0 = engine default
+        if drift is not None and (isinstance(drift, bool) or not isinstance(drift, (int, float))
+                                  or not 0.1 <= drift <= 25.5):
+            fail("world.camera", "drift_speed must be a number of px/s from 0.1 to 25.5")
+        drift = round(drift * 10) if drift is not None else 0
         self.rows["world"].append((
             int(size[0]), int(size[1]), 0,
             int(spawning.get("max_actors", 12)), int(spawning.get("chance", 50)),
@@ -653,7 +658,7 @@ class Builder:
             round(parse_duration(cam.get("idle_drift", "30s"), "world.camera")),
             parse_clock(clock.get("start", "08:00"), "clock.start"),
             round(parse_duration(clock.get("day_length", "24h"), "clock.day_length")),
-            clear, int(m.group(1)), int(m.group(2)), self.string(str(spec.get("name", "")))))
+            clear, int(m.group(1)), int(m.group(2)), drift, self.string(str(spec.get("name", "")))))
 
     def build_palettes(self, lighting: dict):
         base = [(0, 0, 0)] * 256
