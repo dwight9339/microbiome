@@ -713,7 +713,7 @@
 					)
 				)
 			)
-			(property "Footprint" "footprints:MSP3223_3.2in_IPS_SPI"
+			(property "Footprint" "microbiome_prototype_1_footprints:MSP3223_3.2in_IPS_SPI"
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -1624,7 +1624,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "custom:Adafruit_Feather_RP2350"
+		(symbol "microbiome_prototype_1_symbols:Adafruit_Feather_RP2350"
 			(pin_numbers
 				(hide yes)
 			)
@@ -1653,7 +1653,7 @@
 					)
 				)
 			)
-			(property "Footprint" "custom_footprints:Adafruit_Feather_RP2350"
+			(property "Footprint" "microbiome_prototype_1_footprints:Adafruit_Feather_RP2350"
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -5720,7 +5720,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "footprints:SPKR_AS01508AO-SC-WP-R"
+		(property "Footprint" "microbiome_prototype_1_footprints:SPKR_AS01508AO-SC-WP-R"
 			(at 171.45 113.03 0)
 			(hide yes)
 			(show_name no)
@@ -6696,7 +6696,7 @@
 		)
 	)
 	(symbol
-		(lib_id "custom:Adafruit_Feather_RP2350")
+		(lib_id "microbiome_prototype_1_symbols:Adafruit_Feather_RP2350")
 		(at 62.23 59.69 0)
 		(unit 1)
 		(body_style 1)
@@ -6728,7 +6728,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "custom_footprints:Adafruit_Feather_RP2350"
+		(property "Footprint" "microbiome_prototype_1_footprints:Adafruit_Feather_RP2350"
 			(at 62.23 59.69 0)
 			(hide yes)
 			(show_name no)

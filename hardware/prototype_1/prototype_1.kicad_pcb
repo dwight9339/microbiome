@@ -1187,7 +1187,7 @@
 			)
 		)
 	)
-	(footprint "custom_footprints:Adafruit_Feather_RP2350"
+	(footprint "microbiome_prototype_1_footprints:Adafruit_Feather_RP2350"
 		(locked yes)
 		(layer "B.Cu")
 		(uuid "142ce889-c42a-4e68-9a17-bfb59f38cc28")
@@ -4954,7 +4954,7 @@
 			)
 		)
 	)
-	(footprint "footprints:SPKR_AS01508AO-SC-WP-R"
+	(footprint "microbiome_prototype_1_footprints:SPKR_AS01508AO-SC-WP-R"
 		(locked yes)
 		(layer "B.Cu")
 		(uuid "9086a8dd-dcbc-4c0b-8ff1-d642a39f88e0")

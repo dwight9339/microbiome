@@ -4,7 +4,7 @@
     (in_bom yes) (on_board yes)
     (property "Reference" "J" (at 0 25.4 0) (effects (font (size 1.27 1.27))))
     (property "Value" "MSP3223_3.2in_IPS_SPI" (at 0 -25.4 0) (effects (font (size 1.27 1.27))))
-    (property "Footprint" "footprints:MSP3223_3.2in_IPS_SPI" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+    (property "Footprint" "microbiome_prototype_1_footprints:MSP3223_3.2in_IPS_SPI" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
     (property "Datasheet" "https://www.lcdwiki.com/3.2inch_IPS_SPI_Module_ILI9341" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
     (property "Description" "LCDwiki MSP3223 3.2in IPS ILI9341V 240x320 SPI display module, capacitive touch and microSD optional; 14-pin 2.54mm header; 5V module input" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
     (property "ki_keywords" "MSP3223 LCDwiki ILI9341 ILI9341V IPS TFT SPI 3.2" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
