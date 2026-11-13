@@ -192,9 +192,14 @@ typedef struct mb_engine {
     /* camera (top-left of viewport, Q8) */
     int32_t  cam_x, cam_y, cam_max_x, cam_max_y;
     int32_t  layer_px[MB_MAX_LAYERS], layer_py[MB_MAX_LAYERS]; /* resolved parallax, Q8 */
-    uint32_t idle_ms, drift_repick_ms;
-    uint16_t drift_actor_id;
-    int8_t   drift_dir;
+    uint32_t idle_ms;
+    /* autopilot: hold a framing, rarely glide to a clearly better one */
+    int32_t  drift_tx, drift_ty;   /* glide target, Q8 */
+    int32_t  drift_v;              /* current glide speed, Q8 px/s */
+    uint32_t drift_hold_ms;        /* until the framing is next reconsidered */
+    uint32_t drift_since_ms;       /* since the last glide ended */
+    int8_t   drift_dir;            /* direction of the last glide: -1, 0, +1 */
+    bool     drift_gliding;
 
     /* spawning */
     uint32_t spawn_timer_ms;
@@ -278,8 +283,16 @@ int  mb_actor_count(const mb_engine_t *e);
 bool mb_actor_info(const mb_engine_t *e, int nth, mb_actor_info_t *out);
 /* World px -> display px for the current camera. */
 void mb_world_to_display(const mb_engine_t *e, int wx, int wy, int *dx, int *dy);
-/* Point the camera so world (x, y) is centred. */
+/* Point the camera so world (x, y) is centred. Cancels an autopilot glide. */
 void mb_camera_center(mb_engine_t *e, int wx, int wy);
+
+/* Autopilot timing (real time, not simulated). After a glide ends the camera
+ * holds for at least MB_DRIFT_HOLD_MS, and won't glide back the way it came
+ * within MB_DRIFT_REVERSE_MS. Speed is the pack's camera.drift_speed. */
+#define MB_DRIFT_EVAL_MS     20000u   /* how often a held framing is reconsidered */
+#define MB_DRIFT_HOLD_MS    180000u
+#define MB_DRIFT_REVERSE_MS 480000u
+#define MB_DRIFT_SPEED_DEFAULT 30u    /* 0.1 px/s units: 3 px/s */
 /* The viewport in world px: top-left corner and size. */
 void mb_camera_view(const mb_engine_t *e, int *x, int *y, int *w, int *h);
 void mb_get_date(const mb_engine_t *e, uint16_t *year, uint8_t *month, uint8_t *day);

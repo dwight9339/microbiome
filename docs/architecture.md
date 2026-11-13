@@ -131,7 +131,14 @@ All of this is driven by pack data:
   wrapped to the viewport width, fade in and out with their condition, and can
   blink, wander and sway.
 - **Camera autopilot**: after `idle_drift` seconds without input, the camera
-  eases toward a randomly chosen animal and re-picks every 20–45 s.
+  holds a framing and only occasionally glides to a clearly better one. It
+  never follows an animal. Framings a quarter view apart (at most one view
+  away) are scored by the animals in them: resting ones count more than moving
+  ones, and leaving or fleeing ones don't count. A glide needs a clear win,
+  runs at `drift_speed` (a few px/s) with an eased start and stop, and is
+  followed by a hold of at least 3 minutes. The camera won't reverse
+  direction within 8 minutes, and an empty scene stays put. The goal is a
+  view that has changed when you look back, without you seeing it move.
 
 ## Pack binary format
 

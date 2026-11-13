@@ -13,7 +13,8 @@ world:
   camera:
     start: [640, 200]
     pan_speed: 140           # px/s while an arrow is held
-    idle_drift: 25s          # then the camera starts gently following animals
+    idle_drift: 25s          # then the autopilot takes over: it holds a view and only
+                             # rarely glides to a clearly better one
   spawning:
     interval: 4s
     chance: 55               # percent per interval

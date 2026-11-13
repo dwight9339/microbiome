@@ -80,7 +80,7 @@ typedef struct {
     uint8_t  clear_color;        /* palette index for letterbox / empty pixels */
     uint8_t  start_month;        /* simulated clock start date */
     uint8_t  start_day;
-    uint8_t  reserved;
+    uint8_t  drift_speed;        /* autopilot glide speed, 0.1 px/s; 0 = default */
     uint32_t name_str;
 } mb_pk_world_t;
 
