@@ -1,0 +1,8 @@
+"Reference","Qty","Value","DNP","Exclude from BOM","Exclude from Board","Footprint","Datasheet","digikey_part_number","Manufacturer_Part_Number","MPN"
+"IC1","1","PAM8302AASCR","","","","SOP65P490X110-8N","https://www.diodes.com/assets/Datasheets/PAM8302A.pdf","","PAM8302AASCR",""
+"J1","1","Feather RP2350","","","","microbiome_prototype_1_footprints:Adafruit_Feather_RP2350","","1528-6130-ND","",""
+"J2","1","Orient TFT Display Breakout","","","","","","5491-AFL240320A0-2.0INTM-ANO-ND","","AFL240320A0-2.0INTM-ANO"
+"LS1","1","Speaker","","","","","","AFL240320A0-2.0INTM-ANO","","AS01508AO-SC-WP-R"
+"SW1,SW2,SW3,SW4,SW5","5","SW_Push","","","","","","","",""
+"SW6","1","Power_Switch","","","","","","","",""
+"U1","1","DS3231MZ","","","","Package_SO:SOIC-8_3.9x4.9mm_P1.27mm","http://datasheets.maximintegrated.com/en/ds/DS3231M.pdf","","",""
