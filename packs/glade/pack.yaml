@@ -1,8 +1,9 @@
 # Glade - the forest animals in a painted lakeside clearing.
 #
 # The scene is one painted image (src/scene.png). prepare_art.py reduces it
-# to 200 colours and splits out the open sky; re-run it after changing the
-# source. The animal sprites are still the placeholders from packs/forest.
+# to 200 colours, splits out the open sky, and copies the foliage marked in
+# src/front_mask.png into a layer over the animals; re-run it after changing
+# either source. The animal sprites are still the placeholders from packs/forest.
 # Schema reference: docs/pack-format.md
 
 name: Glade
@@ -57,17 +58,20 @@ lighting:
     - {at: "19:45", brightness: 0.34, saturation: 0.45, tint: "#5866b8", tint_strength: 0.55}
 
 # ---------------------------------------------------------------------------
-# Layers, back to front. Both are world-sized, so they move 1:1 (no parallax:
-# the painting is a single plane). The open sky is its own layer only so that
-# stars can twinkle in the canopy gaps without drawing over the trees.
+# Layers, back to front. All move 1:1 with the world (no parallax: the
+# painting is a single plane). The open sky is its own layer only so that
+# stars can twinkle in the canopy gaps without drawing over the trees. The
+# front layer is the foliage and boulders along the bottom edge, cut from the
+# same painting: animals that wander down there pass behind it.
 layers:
   - {name: sky,   image: art/sky.png}
   - {name: scene, image: art/scene.png}
+  - {name: front, image: art/front.png, at: [0, 150], parallax: 1, front: true}  # at: FRONT_TOP in prepare_art.py
 
 # Bands of y (feet position) actors move within. The ground lane is the
 # clearing, from the back tree line down to the foreground foliage.
 lanes:
-  ground: [124, 212]
+  ground: [124, 232]
   sky:    [14, 80]
 
 # Points of interest and what they offer, in world (= painting) pixels.
