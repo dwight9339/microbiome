@@ -82,7 +82,8 @@ for each display row:
     vy = row / scale
     if vy is new:  compose line[view_w] (8-bit palette indices):
                      clear → back layers (+ particles placed "above" them)
-                     → actors sorted by feet-y → front layers → top particles
+                     → actors sorted by feet-y (minus pixels under occluders
+                       they're behind) → front layers → top particles
     expand line through the 256-entry LUT into native pixels, × scale horizontally
 ```
 
@@ -127,6 +128,12 @@ All of this is driven by pack data:
 - **Obstacles** are ellipses in a lane (a pond). Walkers route around them
   over a tiny visibility graph (start, target, and the corners of each
   obstacle's box). They follow the first leg and replan at each corner.
+- **Occluders** let actors pass behind painted scenery (a boulder, a trunk):
+  a cropped 0/1 mask plus the y where the object meets the ground. When an
+  actor's feet are above that base, its pixels under the mask are skipped, so
+  the painting shows through. Feet-y is the depth, the same rule that orders
+  actors among themselves. Occluders only affect drawing; obstacles keep
+  walkers out of the object's footprint.
 - **Particles**: snow, rain, fireflies and stars. They are world-space but
   wrapped to the viewport width, fade in and out with their condition, and can
   blink, wander and sway.

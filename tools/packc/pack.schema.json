@@ -40,6 +40,30 @@
       "maxProperties": 8,
       "additionalProperties": { "$ref": "#/$defs/obstacle" }
     },
+    "occlusion": {
+      "type": "object",
+      "description": "Scenery actors can pass behind (boulders, trunks): an actor whose feet are above an occluder's base is hidden under its mask.",
+      "additionalProperties": false,
+      "required": ["mask", "occluders"],
+      "properties": {
+        "mask": { "type": "string", "description": "World-sized image; each occluder painted in its own flat colour, black or transparent elsewhere." },
+        "occluders": {
+          "type": "object",
+          "minProperties": 1,
+          "maxProperties": 16,
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["color", "base"],
+            "properties": {
+              "color": { "$ref": "#/$defs/color", "description": "This occluder's colour in the mask." },
+              "base": { "type": "integer", "description": "World y where it meets the ground; actors with feet above this are behind it." },
+              "lanes": { "type": "array", "items": { "type": "string" }, "description": "Only hide actors in these lanes (default: all)." }
+            }
+          }
+        }
+      }
+    },
     "actors": {
       "type": "object",
       "description": "Animal definitions.",

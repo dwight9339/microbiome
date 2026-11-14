@@ -35,8 +35,39 @@ MB_HOT static void draw_layer_row(const mb_engine_t *e, uint32_t li, int32_t vy,
     }
 }
 
+/* Collect the occluders in front of actor `a` that cover world row wy within
+ * view columns [sx, sx + w). Returns how many went into occ[]. */
+MB_HOT static int occluders_for(const mb_engine_t *e, const mb_actor_t *a, const mb_pk_actor_t *ad, int32_t wy,
+                                int32_t sx, int32_t w, int32_t camx, const mb_pk_occluder_t **occ) {
+    int n = 0;
+    int32_t feet = a->y >> 8;
+    for (uint32_t i = 0; i < e->n_occluders; i++) {
+        const mb_pk_occluder_t *o = &e->occluders[i];
+        if (feet >= o->base_y) continue; /* actor is in front */
+        if (o->lane_mask && (ad->lane == MB_NO_LANE || ad->lane >= 16 || !((o->lane_mask >> ad->lane) & 1u)))
+            continue;
+        const mb_pk_image_t *m = &e->images[o->image];
+        if (wy < o->y || wy >= o->y + m->h) continue;
+        int32_t ox = o->x - camx;
+        if (ox >= sx + w || ox + m->w <= sx) continue;
+        occ[n++] = o;
+    }
+    return n;
+}
+
+MB_HOT static bool occluded(const mb_engine_t *e, const mb_pk_occluder_t *const *occ, int n, int32_t wx, int32_t wy) {
+    for (int i = 0; i < n; i++) {
+        const mb_pk_occluder_t *o = occ[i];
+        const mb_pk_image_t *m = &e->images[o->image];
+        int32_t mx = wx - o->x;
+        if (mx >= 0 && mx < m->w && e->blob[m->data_off + (uint32_t)(wy - o->y) * m->w + (uint32_t)mx]) return true;
+    }
+    return false;
+}
+
 MB_HOT static void draw_actors_row(const mb_engine_t *e, int32_t vy, uint8_t *line) {
     int32_t camx = e->cam_x >> 8, camy = e->cam_y >> 8, vw = e->view_w;
+    const mb_pk_occluder_t *occ[MB_MAX_OCCLUDERS];
     for (int k = 0; k < e->n_order; k++) {
         const mb_actor_t *a = &e->actors[e->order[k]];
         const mb_pk_actor_t *ad = &e->actor_defs[a->archetype];
@@ -57,12 +88,14 @@ MB_HOT static void draw_actors_row(const mb_engine_t *e, int32_t vy, uint8_t *li
         uint32_t fx = (cell % cols) * ad->frame_w, fy = (cell / cols) * ad->frame_h;
         const uint8_t *src = e->blob + im->data_off + (fy + (uint32_t)iy) * im->w + fx;
 
+        int32_t wy = vy + camy;
+        int n_occ = e->n_occluders ? occluders_for(e, a, ad, wy, sx, ad->frame_w, camx, occ) : 0;
         for (int32_t i = 0; i < ad->frame_w; i++) {
             int32_t dx = sx + i;
             if (dx < 0) continue;
             if (dx >= vw) break;
             uint8_t c = flip ? src[ad->frame_w - 1 - i] : src[i];
-            if (c) line[dx] = c;
+            if (c && !(n_occ && occluded(e, occ, n_occ, dx + camx, wy))) line[dx] = c;
         }
     }
 }

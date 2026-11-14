@@ -87,6 +87,23 @@ places:
 # starts below its far shore, so there is no way round behind).
 obstacles:
   pond: {lane: ground, ellipse: [-20, 116, 165, 190]}
+  # the footprints of the occluders below, so walkers go round, not through
+  shore_rocks:   {lane: ground, ellipse: [115, 166, 190, 185]}
+  clearing_rock: {lane: ground, ellipse: [283, 203, 353, 214]}
+  rocks_right:   {lane: ground, ellipse: [386, 184, 472, 200]}  # the burrow is just behind it
+  trunk_right:   {lane: ground, ellipse: [460, 188, 500, 206]}
+
+# Scenery animals can pass behind. art/occlusion.png paints each object in its
+# own flat colour (black = nothing); `base` is the y where it meets the ground.
+# An animal whose feet are above (less than) the base is behind the object, and
+# the painting shows through where they overlap. Repaint the mask freely.
+occlusion:
+  mask: art/occlusion.png
+  occluders:
+    shore_rocks:   {color: "#ffff00", base: 180, lanes: [ground]}
+    clearing_rock: {color: "#0000ff", base: 211, lanes: [ground]}
+    rocks_right:   {color: "#00ff00", base: 195, lanes: [ground]}
+    trunk_right:   {color: "#ff0000", base: 198, lanes: [ground]}  # below the canopy, so the owl's perch stays clear
 
 # ---------------------------------------------------------------------------
 # Actors. States are a weighted, randomized state machine; the first state is

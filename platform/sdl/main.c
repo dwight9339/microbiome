@@ -232,6 +232,20 @@ int main(int argc, char **argv) {
                 SDL_Rect r = {x0, y0, x1 - x0, y1 - y0};
                 SDL_RenderDrawRect(ren, &r);
             }
+            /* occluders: dim box around the mask, bright line at the base */
+            for (uint32_t i = 0; i < eng.n_occluders; i++) {
+                const mb_pk_occluder_t *oc = &eng.occluders[i];
+                const mb_pk_image_t *m = &eng.images[oc->image];
+                int x0, y0, x1, y1, by;
+                mb_world_to_display(&eng, oc->x, oc->y, &x0, &y0);
+                mb_world_to_display(&eng, oc->x + m->w, oc->y + m->h, &x1, &y1);
+                mb_world_to_display(&eng, oc->x, oc->base_y, &x0, &by);
+                SDL_SetRenderDrawColor(ren, 64, 160, 255, 255);
+                SDL_Rect r = {x0, y0, x1 - x0, y1 - y0};
+                SDL_RenderDrawRect(ren, &r);
+                SDL_SetRenderDrawColor(ren, 128, 255, 128, 255);
+                SDL_RenderDrawLine(ren, x0, by, x1, by);
+            }
             SDL_SetRenderDrawColor(ren, 0, 0, 0, 255);
         }
         SDL_RenderPresent(ren);

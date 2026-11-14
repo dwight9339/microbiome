@@ -1,5 +1,5 @@
 /*
- * microbiome pack binary format (version 1)
+ * microbiome pack binary format (see MB_PACK_VERSION)
  *
  * A pack is a single little-endian blob produced by tools/packc/packc.py.
  * The engine reads it in place (e.g. straight from memory-mapped flash), so
@@ -22,7 +22,7 @@
 #endif
 
 #define MB_PACK_MAGIC   0x4B50424Du /* "MBPK" */
-#define MB_PACK_VERSION 2u
+#define MB_PACK_VERSION 3u   /* 3: OCCLUDERS section */
 
 enum {
     MB_SEC_WORLD = 0,
@@ -43,6 +43,7 @@ enum {
     MB_SEC_PLACES,
     MB_SEC_PARTICLES,
     MB_SEC_OBSTACLES,
+    MB_SEC_OCCLUDERS,
     MB_SEC_BLOB,
     MB_SEC_STRINGS,
     MB_SEC_COUNT
@@ -288,6 +289,22 @@ typedef struct {
     uint32_t name_str;
 } mb_pk_obstacle_t;
 
+/* ---- occluders ---------------------------------------------------------- */
+
+/* Scenery actors can pass behind, such as a boulder or a tree trunk, painted
+ * into a world-aligned layer. `image` is a mask (nonzero = part of the object)
+ * placed at (x, y); base_y is where the object meets the ground. An actor
+ * whose feet are above it (feet y < base_y) is behind the object: its pixels
+ * under the mask aren't drawn, so the painted scenery shows through. */
+typedef struct {
+    int16_t  x, y;           /* mask's top-left, world px */
+    uint16_t image;          /* mask; pixel values are 0 or 1 */
+    int16_t  base_y;
+    uint16_t lane_mask;      /* lanes whose actors it hides (bit per lane); 0 = all */
+    uint16_t reserved;
+    uint32_t name_str;
+} mb_pk_occluder_t;
+
 /* ---- particles ---------------------------------------------------------- */
 
 #define MB_PART_BLINK  0x01u
@@ -327,6 +344,7 @@ MB_STATIC_ASSERT(sizeof(mb_pk_spawn_t) == 16, spawn);
 MB_STATIC_ASSERT(sizeof(mb_pk_lane_t) == 8, lane);
 MB_STATIC_ASSERT(sizeof(mb_pk_place_t) == 16, place);
 MB_STATIC_ASSERT(sizeof(mb_pk_obstacle_t) == 16, obstacle);
+MB_STATIC_ASSERT(sizeof(mb_pk_occluder_t) == 16, occluder);
 MB_STATIC_ASSERT(sizeof(mb_pk_particle_t) == 24, particle);
 
 #endif /* MB_PACK_FORMAT_H */

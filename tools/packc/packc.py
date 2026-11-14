@@ -25,12 +25,12 @@ except ImportError as exc:  # pragma: no cover
     sys.exit(f"packc needs PyYAML and Pillow: pip install pyyaml pillow ({exc})")
 
 MAGIC = 0x4B50424D
-VERSION = 2
+VERSION = 3
 
 SECTIONS = [
     "world", "palettes", "images", "layers", "anims", "frames", "actors", "states",
     "next", "reactions", "conds", "clauses", "vars", "spawns", "lanes", "places",
-    "particles", "obstacles", "blob", "strings",
+    "particles", "obstacles", "occluders", "blob", "strings",
 ]
 
 # struct formats (little-endian, no implicit padding) - must match pack_format.h
@@ -55,12 +55,13 @@ FMT = {
     "places":    "<hhIIHH",
     "particles": "<HHBBBBhhhhhhB3x",
     "obstacles": "<hhhhBBHI",
+    "occluders": "<hhHhHHI",
 }
 EXPECTED_SIZES = {
     "world": 32, "palette": 1028, "images": 8, "layers": 16, "anims": 8, "frames": 2,
     "actors": 36, "states": 20, "next": 4, "reactions": 8, "conds": 4, "clauses": 12,
     "vars": 20, "spawns": 16, "lanes": 8, "places": 16, "particles": 24,
-    "obstacles": 16,
+    "obstacles": 16, "occluders": 16,
 }
 for _k, _v in EXPECTED_SIZES.items():
     assert struct.calcsize(FMT[_k]) == _v, (_k, struct.calcsize(FMT[_k]))
@@ -79,6 +80,7 @@ VAR_CONST, VAR_MINUTE, VAR_HOUR, VAR_MONTH, VAR_DAY, VAR_STEP, VAR_MARKOV = rang
 ENTER = {"edge": 0, "place": 1, "anywhere": 2}
 OBSTACLE_ELLIPSE = 0
 OBSTACLE_MAX_SIZE, MAX_OBSTACLES = 1024, 8
+MAX_OCCLUDERS = 16
 PART_BLINK, PART_WANDER = 0x01, 0x02
 MAX_LABEL = 255  # bytes per enum value label; hosts size their label buffers from it
 
@@ -413,6 +415,76 @@ class Builder:
             self.rows["layers"].append((img, flags, int(at[0]), int(at[1]), q8(pxx), q8(pxy),
                                         self.string(lname)))
 
+    def build_occlusion(self, occ, world_size):
+        """occlusion: {mask: <image>, occluders: {name: {color, base, lanes}}}.
+
+        The mask is world-sized; each occluder is painted in its own flat
+        colour (black or transparent = nothing). Each becomes a 0/1 mask
+        cropped to its bounding box."""
+        if not occ:
+            return
+        where = "occlusion"
+        if not isinstance(occ, dict) or "mask" not in occ or not occ.get("occluders"):
+            fail(where, "needs 'mask: <image>' and 'occluders:'")
+        rel = str(occ["mask"])
+        path = os.path.join(self.root, rel)
+        self.inputs.add(path)
+        try:
+            im = Image.open(path).convert("RGBA")
+        except (OSError, ValueError) as exc:
+            fail(where, f"cannot load image {rel!r}: {exc}")
+        w, h = im.size
+        if world_size and [w, h] != [int(v) for v in world_size]:
+            fail(where, f"{rel} is {w}x{h}; it must match world.size {list(world_size)}")
+        occs = occ["occluders"]
+        if len(occs) > MAX_OCCLUDERS:
+            fail(where, f"at most {MAX_OCCLUDERS} occluders (have {len(occs)})")
+        px = im.load()
+        by_color: dict[tuple, list] = {}
+        for y in range(h):
+            for x in range(w):
+                r, g, b, a = px[x, y]
+                if a >= 128 and (r, g, b) != (0, 0, 0):
+                    by_color.setdefault((r, g, b), []).append((x, y))
+        used = set()
+        for on, o in occs.items():
+            ow = f"{where}.occluders.{on}"
+            if not isinstance(o, dict) or "color" not in o or "base" not in o:
+                fail(ow, "needs 'color:' (its colour in the mask) and 'base:' (y where it meets the ground)")
+            rgb = parse_color(o["color"], ow)
+            pts = by_color.get(rgb)
+            if not pts:
+                fail(ow, f"no {o['color']} pixels in {rel}")
+            used.add(rgb)
+            base = o["base"]
+            if isinstance(base, bool) or not isinstance(base, int) or not -32768 <= base <= 32767:
+                fail(ow, f"base must be a whole number of px, got {base!r}")
+            lane_mask = 0
+            for ln in as_list(o.get("lanes")):
+                if ln not in self.lane_names:
+                    fail(ow, f"unknown lane {ln!r} (have: {', '.join(self.lane_names)})")
+                li = self.lane_names.index(ln)
+                if li >= 16:
+                    fail(ow, f"lanes: only the first 16 lanes can be listed ({ln!r} is #{li + 1})")
+                lane_mask |= 1 << li
+            x0, y0 = min(p[0] for p in pts), min(p[1] for p in pts)
+            x1, y1 = max(p[0] for p in pts) + 1, max(p[1] for p in pts) + 1
+            mw, mh = x1 - x0, y1 - y0
+            data = bytearray(mw * mh)
+            for x, y in pts:
+                data[(y - y0) * mw + (x - x0)] = 1
+            img = len(self.rows["images"])
+            self.rows["images"].append((mw, mh, self.blob_add(bytes(data))))
+            self.images.append((f"{rel}#{on}", mw, mh))
+            if base <= y0:
+                self.warnings.append(f"{ow}: base {base} is at or above the top of its mask ({y0}), "
+                                     "so it can never hide anything")
+            self.rows["occluders"].append((x0, y0, img, base, lane_mask, 0, self.string(on)))
+        stray = sorted(set(by_color) - used)
+        if stray:
+            shown = ", ".join("#%02x%02x%02x" % c for c in stray[:6]) + (" ..." if len(stray) > 6 else "")
+            self.warnings.append(f"{where}: {rel} has colours no occluder uses (ignored): {shown}")
+
     def build_actor(self, name, a):
         where = f"actors.{name}"
         for k in ("sheet", "frame", "anims", "states"):
@@ -588,6 +660,8 @@ class Builder:
                 if ((px - cx) / rx) ** 2 + ((py - cy) / ry) ** 2 < 1:
                     self.warnings.append(f"places.{pn}: inside obstacle '{on}'; visitors will walk into it")
 
+        self.build_occlusion(spec.get("occlusion"), world.get("size"))
+
         self.actor_names: list[str] = []
         for an, a in (spec.get("actors") or {}).items():
             self.build_actor(an, a or {})
@@ -740,7 +814,8 @@ def summary(data: bytes, b: Builder) -> str:
     return (f"{len(data) / 1024:.1f} KiB | {len(b.palette)} colours, {n('palettes')} lighting keyframes | "
             f"{n('images')} images ({len(b.blob) / 1024:.1f} KiB pixels) | {n('layers')} layers | "
             f"{n('actors')} actors, {n('states')} states | {n('spawns')} spawn rules | "
-            f"{n('vars')} vars | {n('particles')} particle systems | {n('obstacles')} obstacles")
+            f"{n('vars')} vars | {n('particles')} particle systems | {n('obstacles')} obstacles"
+            f" | {n('occluders')} occluders")
 
 
 def build_once(pack_dir: str, out: str, quiet=False) -> Builder | None:

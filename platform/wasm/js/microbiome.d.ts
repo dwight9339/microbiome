@@ -49,6 +49,10 @@ export interface PackInfo {
   places: { name: string; at: [number, number]; spread: number }[];
   /** lane indexes `lanes`; box is [x0, y0, x1, y1] in world px. */
   obstacles: { name: string; lane: number; box: [number, number, number, number] }[];
+  /** Scenery actors pass behind. Actors with feet y < base are hidden under
+   *  the mask, whose bounds are box [x0, y0, x1, y1]. laneMask has a bit per
+   *  index into `lanes` (0 = every lane). */
+  occluders: { name: string; base: number; laneMask: number; box: [number, number, number, number] }[];
 }
 
 export interface ActorState {
