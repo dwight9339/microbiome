@@ -314,6 +314,19 @@ static void write_pack_json(void) {
         jraw(","); jkey("box"); jraw("[");
         jint(o->x0); jraw(","); jint(o->y0); jraw(","); jint(o->x1); jraw(","); jint(o->y1); jraw("]}");
     }
+    jraw("]");
+
+    jraw(","); jkey("occluders"); jraw("[");
+    for (uint32_t i = 0; i < e->n_occluders; i++) {
+        const mb_pk_occluder_t *o = &e->occluders[i];
+        const mb_pk_image_t *m = &e->images[o->image];
+        jsep((int)i);
+        jraw("{"); jkey("name"); jstr(mb_str(e, o->name_str));
+        jraw(","); jkey("base"); jint(o->base_y);
+        jraw(","); jkey("laneMask"); jint(o->lane_mask);
+        jraw(","); jkey("box"); jraw("[");
+        jint(o->x); jraw(","); jint(o->y); jraw(","); jint(o->x + m->w); jraw(","); jint(o->y + m->h); jraw("]}");
+    }
     jraw("]}");
 }
 

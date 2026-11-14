@@ -79,7 +79,7 @@ sanitizer soak test, and builds the firmware.
 | T | time speed 1× → 60× → 600× |
 | `[` / `]` | hour −/+ |
 | W | cycle weather (pinned) → back to automatic |
-| D (or F1) | debug overlay: actor boxes, places, lanes, obstacles; states in title bar |
+| D (or F1) | debug overlay: actor boxes, places, lanes, obstacles, occluder bases; states in title bar |
 | R | reload pack |
 
 **Iterating on content.** Run the compiler in watch mode next to the

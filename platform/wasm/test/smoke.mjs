@@ -30,6 +30,7 @@ check("load + pack info", () => {
   assert.equal(info.layers.length, 5);
   assert.ok(info.places.some((p) => p.name === "burrow"));
   assert.equal(info.obstacles[0].name, "pond");
+  assert.deepEqual(info.occluders, []);
 });
 
 check("render", () => {

@@ -70,6 +70,7 @@ layers:    [...]
 lanes:     {...}
 places:    {...}
 obstacles: {...}
+occlusion: {...}
 actors:    {...}
 spawns:    [...]
 particles: {...}
@@ -210,6 +211,35 @@ A place that sits on the edge, like a drinking spot on the shore, is fine.
 Draw the obstacle and declare it with the same box. Up to 8 per pack, each
 at most 1024 px per side.
 
+## occlusion
+
+```yaml
+occlusion:                              # scenery actors can pass behind
+  mask: art/occlusion.png               # world-sized; one flat colour per occluder, black elsewhere
+  occluders:
+    boulder: {color: "#00ff00", base: 195, lanes: [ground]}
+    trunk:   {color: "#ff0000", base: 198}
+```
+
+Paint each object that actors should be able to walk behind (a boulder, a
+tree trunk) into the mask in its own colour, over exactly the pixels it
+covers in the painting. `base` is the y where it meets the ground. An actor
+whose feet are above the base (`y < base`) is behind it: the actor's pixels
+under the mask aren't drawn, so the painted object shows through. Feet on or
+below the base are in front, as usual.
+
+- `lanes` (optional): only hide actors in these lanes. Use it to keep, say,
+  birds flying high past a trunk visible. The default is every lane.
+- Give the object an obstacle around its footprint too, so walkers go
+  round it instead of through it. Occlusion only changes drawing.
+- The mask is in world pixels, so it lines up with world-sized layers
+  (parallax 1). Antialiased or stray colours are ignored, with a warning.
+- Something that is always in front, such as foliage along the bottom edge,
+  is simpler as a `front: true` layer.
+
+Up to 16 occluders per pack. The SDL simulator's debug overlay (D) shows each
+occluder's box and its base line.
+
 ## actors
 
 ```yaml
@@ -296,4 +326,4 @@ changes. The engine holds 256 particles in total.
 
 32 live actors, 256 particles, 8 particle systems, 16 layers, 64 spawn rules,
 32 variables, 32 tags, 32 affordances, 254 states per actor, 255 colours,
-8 obstacles.
+8 obstacles, 16 occluders.
