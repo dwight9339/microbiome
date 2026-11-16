@@ -52,6 +52,9 @@ extern "C" {
 #ifndef MB_MAX_OCCLUDERS
 #define MB_MAX_OCCLUDERS 16
 #endif
+#ifndef MB_MAX_MOTIONS
+#define MB_MAX_MOTIONS 8
+#endif
 #ifndef MB_MAX_VIEW_W
 #define MB_MAX_VIEW_W 640 /* viewport width in art pixels (display width / scale) */
 #endif
@@ -166,6 +169,7 @@ typedef struct mb_engine {
     const mb_pk_particle_t *psys;      uint32_t n_psys;
     const mb_pk_obstacle_t *obstacles; uint32_t n_obstacles;
     const mb_pk_occluder_t *occluders; uint32_t n_occluders;
+    const mb_pk_motion_t   *motions;   uint32_t n_motions;
     const uint8_t          *blob;      uint32_t blob_size;
     const char             *strings;   uint32_t strings_size;
 

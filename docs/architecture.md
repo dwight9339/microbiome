@@ -134,6 +134,10 @@ All of this is driven by pack data:
   the painting shows through. Feet-y is the depth, the same rule that orders
   actors among themselves. Occluders only affect drawing; obstacles keep
   walkers out of the object's footprint.
+- **Motion** ripples painted water: inside a weight mask on a layer, each
+  image row shifts sideways by `amp * weight * sin(time - row)`, taking
+  pixels only from inside the mask so the shore stays still. It is computed
+  while the row is drawn, so it needs no extra memory and no new art.
 - **Particles**: snow, rain, fireflies and stars. They are world-space but
   wrapped to the viewport width, fade in and out with their condition, and can
   blink, wander and sway.
