@@ -22,7 +22,7 @@
 #endif
 
 #define MB_PACK_MAGIC   0x4B50424Du /* "MBPK" */
-#define MB_PACK_VERSION 3u   /* 3: OCCLUDERS section */
+#define MB_PACK_VERSION 4u   /* 3: OCCLUDERS section, 4: MOTIONS */
 
 enum {
     MB_SEC_WORLD = 0,
@@ -44,6 +44,7 @@ enum {
     MB_SEC_PARTICLES,
     MB_SEC_OBSTACLES,
     MB_SEC_OCCLUDERS,
+    MB_SEC_MOTIONS,
     MB_SEC_BLOB,
     MB_SEC_STRINGS,
     MB_SEC_COUNT
@@ -305,6 +306,23 @@ typedef struct {
     uint32_t name_str;
 } mb_pk_occluder_t;
 
+/* ---- motion ------------------------------------------------------------- */
+
+/* Moving water: rows of a layer ripple sideways inside a mask. `image` holds
+ * per-pixel weights (0 = still, 255 = full amp) cropped to the mask's box and
+ * placed at (x, y) in the layer image's pixels. A pixel at image row iy shifts
+ * by round(amp * weight/255 * sin(2pi * (t / period_ms - iy / wavelength))),
+ * but only takes pixels from inside the mask, so the shoreline holds still. */
+typedef struct {
+    int16_t  x, y;           /* mask's top-left in the layer image */
+    uint16_t image;          /* weights */
+    uint8_t  layer;
+    uint8_t  amp;            /* px at full weight */
+    uint16_t period_ms;      /* one wave passing a row */
+    uint16_t wavelength;     /* rows per wave, >= 1 */
+    uint32_t name_str;
+} mb_pk_motion_t;
+
 /* ---- particles ---------------------------------------------------------- */
 
 #define MB_PART_BLINK  0x01u
@@ -345,6 +363,7 @@ MB_STATIC_ASSERT(sizeof(mb_pk_lane_t) == 8, lane);
 MB_STATIC_ASSERT(sizeof(mb_pk_place_t) == 16, place);
 MB_STATIC_ASSERT(sizeof(mb_pk_obstacle_t) == 16, obstacle);
 MB_STATIC_ASSERT(sizeof(mb_pk_occluder_t) == 16, occluder);
+MB_STATIC_ASSERT(sizeof(mb_pk_motion_t) == 16, motion);
 MB_STATIC_ASSERT(sizeof(mb_pk_particle_t) == 24, particle);
 
 #endif /* MB_PACK_FORMAT_H */

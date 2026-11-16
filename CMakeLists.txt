@@ -42,8 +42,9 @@ include(cmake/packs.cmake)
 mb_add_pack(forest ${CMAKE_SOURCE_DIR}/packs/forest ${CMAKE_BINARY_DIR}/forest.mbp)
 mb_add_pack(glade ${CMAKE_SOURCE_DIR}/packs/glade ${CMAKE_BINARY_DIR}/glade.mbp)
 mb_add_pack(tests-occlusion ${CMAKE_SOURCE_DIR}/tests/packs/occlusion ${CMAKE_BINARY_DIR}/tests-occlusion.mbp)
+mb_add_pack(tests-motion ${CMAKE_SOURCE_DIR}/tests/packs/motion ${CMAKE_BINARY_DIR}/tests-motion.mbp)
 add_custom_target(packs ALL DEPENDS ${CMAKE_BINARY_DIR}/forest.mbp ${CMAKE_BINARY_DIR}/glade.mbp
-                                    ${CMAKE_BINARY_DIR}/tests-occlusion.mbp)
+                                    ${CMAKE_BINARY_DIR}/tests-occlusion.mbp ${CMAKE_BINARY_DIR}/tests-motion.mbp)
 
 # ---- tests -----------------------------------------------------------------
 enable_testing()
@@ -62,6 +63,9 @@ endforeach()
 add_executable(occlusion_test tests/occlusion_test.c)
 target_link_libraries(occlusion_test PRIVATE mb_core)
 add_test(NAME occlusion COMMAND occlusion_test ${CMAKE_BINARY_DIR}/tests-occlusion.mbp)
+add_executable(motion_test tests/motion_test.c)
+target_link_libraries(motion_test PRIVATE mb_core)
+add_test(NAME motion COMMAND motion_test ${CMAKE_BINARY_DIR}/tests-motion.mbp)
 add_test(NAME render_night_snow
          COMMAND mbsnap ${CMAKE_BINARY_DIR}/forest.mbp ${CMAKE_BINARY_DIR}/test-night.png
                  --time 22:00 --set weather=precip --set season=winter)
@@ -77,7 +81,8 @@ if(_mb_no_jsonschema)
 else()
     add_test(NAME pack_schema
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/packc/check_schema.py
-                     --self-test ${CMAKE_SOURCE_DIR}/packs/forest)
+                     --self-test ${CMAKE_SOURCE_DIR}/packs/forest
+                     ${CMAKE_SOURCE_DIR}/packs/glade)
 endif()
 if(TARGET mbsim)
     # Runs the real simulator loop for 2 s without a display (also proves

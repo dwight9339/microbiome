@@ -68,6 +68,12 @@ layers:
   - {name: scene, image: art/scene.png}
   - {name: front, image: art/front.png, at: [0, 150], parallax: 1, front: true}  # at: FRONT_TOP in prepare_art.py
 
+# The lake's surface ripples: rows inside art/water.png shift sideways in a
+# slow wave, so the reflections waver while the shore stays put. The mask's
+# brightness is how much each pixel moves (black = still); repaint it freely.
+motion:
+  lake: {layer: scene, mask: art/water.png, amp: 1, period: 3s, wavelength: 8}
+
 # Bands of y (feet position) actors move within. The ground lane is the
 # clearing, from the back tree line down to the foreground foliage.
 lanes:

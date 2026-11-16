@@ -25,12 +25,12 @@ except ImportError as exc:  # pragma: no cover
     sys.exit(f"packc needs PyYAML and Pillow: pip install pyyaml pillow ({exc})")
 
 MAGIC = 0x4B50424D
-VERSION = 3
+VERSION = 4
 
 SECTIONS = [
     "world", "palettes", "images", "layers", "anims", "frames", "actors", "states",
     "next", "reactions", "conds", "clauses", "vars", "spawns", "lanes", "places",
-    "particles", "obstacles", "occluders", "blob", "strings",
+    "particles", "obstacles", "occluders", "motions", "blob", "strings",
 ]
 
 # struct formats (little-endian, no implicit padding) - must match pack_format.h
@@ -56,12 +56,13 @@ FMT = {
     "particles": "<HHBBBBhhhhhhB3x",
     "obstacles": "<hhhhBBHI",
     "occluders": "<hhHhHHI",
+    "motions":   "<hhHBBHHI",
 }
 EXPECTED_SIZES = {
     "world": 32, "palette": 1028, "images": 8, "layers": 16, "anims": 8, "frames": 2,
     "actors": 36, "states": 20, "next": 4, "reactions": 8, "conds": 4, "clauses": 12,
     "vars": 20, "spawns": 16, "lanes": 8, "places": 16, "particles": 24,
-    "obstacles": 16, "occluders": 16,
+    "obstacles": 16, "occluders": 16, "motions": 16,
 }
 for _k, _v in EXPECTED_SIZES.items():
     assert struct.calcsize(FMT[_k]) == _v, (_k, struct.calcsize(FMT[_k]))
@@ -81,6 +82,7 @@ ENTER = {"edge": 0, "place": 1, "anywhere": 2}
 OBSTACLE_ELLIPSE = 0
 OBSTACLE_MAX_SIZE, MAX_OBSTACLES = 1024, 8
 MAX_OCCLUDERS = 16
+MAX_MOTIONS = 8
 PART_BLINK, PART_WANDER = 0x01, 0x02
 MAX_LABEL = 255  # bytes per enum value label; hosts size their label buffers from it
 
@@ -485,6 +487,65 @@ class Builder:
             shown = ", ".join("#%02x%02x%02x" % c for c in stray[:6]) + (" ..." if len(stray) > 6 else "")
             self.warnings.append(f"{where}: {rel} has colours no occluder uses (ignored): {shown}")
 
+    def build_motion(self, motion):
+        """motion: {name: {layer, mask, amp, period, wavelength}}.
+
+        The mask is the size of the layer's image; its brightness is how far
+        each pixel moves (black or transparent = still). Each becomes a
+        weight map cropped to its bounding box."""
+        if not motion:
+            return
+        if not isinstance(motion, dict):
+            fail("motion", "must be a mapping of name: {layer, mask, ...}")
+        if len(motion) > MAX_MOTIONS:
+            fail("motion", f"at most {MAX_MOTIONS} (have {len(motion)})")
+        for mn, m in motion.items():
+            where = f"motion.{mn}"
+            if not isinstance(m, dict) or "layer" not in m or "mask" not in m:
+                fail(where, "needs 'layer:' (the layer that moves) and 'mask:' (where, and how much)")
+            if m["layer"] not in self.layer_names:
+                fail(where, f"unknown layer {m['layer']!r} (have: {', '.join(self.layer_names)})")
+            li = self.layer_names.index(m["layer"])
+            limg, lflags = self.rows["layers"][li][:2]
+            if lflags & LAYER_REPEAT_X:
+                fail(where, f"layer {m['layer']!r} repeats (repeat_x), which motion doesn't support")
+            lw, lh = self.rows["images"][limg][:2]
+            rel = str(m["mask"])
+            path = os.path.join(self.root, rel)
+            self.inputs.add(path)
+            try:
+                im = Image.open(path).convert("LA")
+            except (OSError, ValueError) as exc:
+                fail(where, f"cannot load image {rel!r}: {exc}")
+            if im.size != (lw, lh):
+                fail(where, f"{rel} is {im.size[0]}x{im.size[1]}; it must match the layer's image ({lw}x{lh})")
+            px = im.load()
+            weights = {(x, y): v for y in range(lh) for x in range(lw)
+                       for v, a in (px[x, y],) if a >= 128 and v}
+            if not weights:
+                fail(where, f"{rel} is all black: nothing would move")
+            amp = m.get("amp", 1)
+            if isinstance(amp, bool) or not isinstance(amp, int) or not 1 <= amp <= 255:
+                fail(where, f"amp must be a whole number of px from 1 to 255, got {amp!r}")
+            if amp > 3:
+                self.warnings.append(f"{where}: amp {amp} px is a lot for pixel art; 1-2 reads as a ripple")
+            period = round(parse_duration(m.get("period", "3s"), f"{where}.period") * 1000)
+            if not 1 <= period <= 65535:
+                fail(where, f"period must be between 1ms and 65s, got {m.get('period')!r}")
+            wavelength = m.get("wavelength", 8)
+            if isinstance(wavelength, bool) or not isinstance(wavelength, int) or not 1 <= wavelength <= 65535:
+                fail(where, f"wavelength must be a whole number of rows (>= 1), got {wavelength!r}")
+            x0, y0 = min(p[0] for p in weights), min(p[1] for p in weights)
+            x1, y1 = max(p[0] for p in weights) + 1, max(p[1] for p in weights) + 1
+            mw, mh = x1 - x0, y1 - y0
+            data = bytearray(mw * mh)
+            for (x, y), v in weights.items():
+                data[(y - y0) * mw + (x - x0)] = v
+            img = len(self.rows["images"])
+            self.rows["images"].append((mw, mh, self.blob_add(bytes(data))))
+            self.images.append((f"{rel}#{mn}", mw, mh))
+            self.rows["motions"].append((x0, y0, img, li, amp, period, wavelength, self.string(mn)))
+
     def build_actor(self, name, a):
         where = f"actors.{name}"
         for k in ("sheet", "frame", "anims", "states"):
@@ -618,6 +679,7 @@ class Builder:
         world = spec.get("world") or {}
         self.build_vars(spec.get("vars"))
         self.build_layers(spec.get("layers"))
+        self.build_motion(spec.get("motion"))
 
         lanes = spec.get("lanes") or {}
         self.lane_names = list(lanes.keys())
@@ -815,7 +877,7 @@ def summary(data: bytes, b: Builder) -> str:
             f"{n('images')} images ({len(b.blob) / 1024:.1f} KiB pixels) | {n('layers')} layers | "
             f"{n('actors')} actors, {n('states')} states | {n('spawns')} spawn rules | "
             f"{n('vars')} vars | {n('particles')} particle systems | {n('obstacles')} obstacles"
-            f" | {n('occluders')} occluders")
+            f" | {n('occluders')} occluders | {n('motions')} motions")
 
 
 def build_once(pack_dir: str, out: str, quiet=False) -> Builder | None:

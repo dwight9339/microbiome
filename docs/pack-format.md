@@ -67,6 +67,7 @@ clock:     {...}
 vars:      {...}
 lighting:  {...}
 layers:    [...]
+motion:    {...}
 lanes:     {...}
 places:    {...}
 obstacles: {...}
@@ -240,6 +241,31 @@ below the base are in front, as usual.
 Up to 16 occluders per pack. The SDL simulator's debug overlay (D) shows each
 occluder's box and its base line.
 
+## motion
+
+```yaml
+motion:                                 # moving scenery, such as water
+  lake: {layer: scene, mask: art/water.png, amp: 1, period: 3s, wavelength: 8}
+```
+
+Rows of `layer` inside the mask ripple sideways in a slow wave, so the
+reflections on a lake waver. The mask is a greyscale image the size of the
+layer's image: its brightness is how far each pixel moves (white = `amp`,
+grey = less, black or transparent = still).
+
+- `amp` (default 1): the shift in px at full brightness. 1–2 px reads as a
+  ripple; more starts to tear the pixel art apart.
+- `period` (default `3s`): how long one wave takes to pass a row.
+- `wavelength` (default 8): rows from one crest to the next. Each row is a
+  little behind the one above it, so the waves travel down the screen.
+- Pixels only take colour from elsewhere inside the same mask, so whatever
+  borders the water (the shore, a rock) stays put. Leave rocks that stick
+  out of the water black in the mask.
+- Any layer except a `repeat_x` one can move. Animals and particles are
+  never moved.
+
+Up to 8 per pack. Moving rows cost a little extra per pixel to draw.
+
 ## actors
 
 ```yaml
@@ -326,4 +352,4 @@ changes. The engine holds 256 particles in total.
 
 32 live actors, 256 particles, 8 particle systems, 16 layers, 64 spawn rules,
 32 variables, 32 tags, 32 affordances, 254 states per actor, 255 colours,
-8 obstacles, 16 occluders.
+8 obstacles, 16 occluders, 8 motions.

@@ -8,6 +8,59 @@
 
 #include "internal.h"
 
+/* sin over one turn of 256 steps, scaled to +-127: a quarter wave, mirrored. */
+static const uint8_t k_quarter_sin[65] = {
+    0,   3,   6,   9,   12,  16,  19,  22,  25,  28,  31,  34,  37,
+    40,  43,  46,  49,  51,  54,  57,  60,  63,  65,  68,  71,  73,
+    76,  78,  81,  83,  85,  88,  90,  92,  94,  96,  98,  100, 102,
+    104, 106, 107, 109, 111, 112, 113, 115, 116, 117, 118, 120, 121,
+    122, 122, 123, 124, 125, 125, 126, 126, 126, 127, 127, 127, 127,
+};
+
+MB_HOT static int32_t sin256(uint32_t a) {
+    a &= 255u;
+    uint32_t q = a & 63u;
+    int32_t v = k_quarter_sin[(a & 64u) ? 64u - q : q];
+    return (a & 128u) ? -v : v;
+}
+
+/* A motion active on image row iy of a layer: its weights for that row and
+ * the row's offset at full weight, amp * sin, in px * 127. */
+typedef struct {
+    int32_t x0, x1;
+    const uint8_t *w;
+    int32_t swing;
+} mb_row_motion_t;
+
+MB_HOT static int motions_for(const mb_engine_t *e, uint32_t li, int32_t iy, mb_row_motion_t *out) {
+    int n = 0;
+    for (uint32_t i = 0; i < e->n_motions; i++) {
+        const mb_pk_motion_t *m = &e->motions[i];
+        const mb_pk_image_t *mi = &e->images[m->image];
+        if (m->layer != li || iy < m->y || iy >= m->y + mi->h) continue;
+        uint32_t t = (e->real_ms % m->period_ms) * 256u / m->period_ms;
+        uint32_t s = (uint32_t)iy * 256u / m->wavelength;
+        out[n].x0 = m->x;
+        out[n].x1 = m->x + mi->w;
+        out[n].w = e->blob + mi->data_off + (uint32_t)(iy - m->y) * mi->w;
+        out[n].swing = m->amp * sin256(t - s);
+        n++;
+    }
+    return n;
+}
+
+/* Image column ix moved by the first motion that covers it. A pixel only
+ * takes from inside the same mask, so whatever borders the water stays put. */
+MB_HOT static int32_t moved_x(const mb_row_motion_t *mo, int n, int32_t ix) {
+    for (int i = 0; i < n; i++) {
+        int32_t x0 = mo[i].x0;
+        if (ix < x0 || ix >= mo[i].x1 || !mo[i].w[ix - x0]) continue;
+        int32_t from = ix - ((mo[i].swing * mo[i].w[ix - x0] + 16384) >> 15); /* round(swing * w / 255 / 127) */
+        return from >= x0 && from < mo[i].x1 && mo[i].w[from - x0] ? from : ix;
+    }
+    return ix;
+}
+
 MB_HOT static void draw_layer_row(const mb_engine_t *e, uint32_t li, int32_t vy, uint8_t *line) {
     const mb_pk_layer_t *l = &e->layers[li];
     const mb_pk_image_t *im = &e->images[l->image];
@@ -17,8 +70,17 @@ MB_HOT static void draw_layer_row(const mb_engine_t *e, uint32_t li, int32_t vy,
     int32_t sx = l->x - (int32_t)(((int64_t)e->cam_x * e->layer_px[li]) >> 16);
     const uint8_t *row = e->blob + im->data_off + (uint32_t)iy * im->w;
     int32_t vw = e->view_w;
+    mb_row_motion_t mo[MB_MAX_MOTIONS];
+    int n_mo = e->n_motions ? motions_for(e, li, iy, mo) : 0;
 
-    if (l->flags & MB_LAYER_REPEAT_X) {
+    if (n_mo) { /* never a repeat_x layer: pack.c rejects that */
+        int32_t x0 = sx < 0 ? 0 : sx, x1 = sx + im->w;
+        if (x1 > vw) x1 = vw;
+        for (int32_t vx = x0; vx < x1; vx++) {
+            uint8_t c = row[moved_x(mo, n_mo, vx - sx)];
+            if (c) line[vx] = c;
+        }
+    } else if (l->flags & MB_LAYER_REPEAT_X) {
         int32_t ix = mb_pmod(-sx, im->w);
         for (int32_t vx = 0; vx < vw; vx++) {
             uint8_t c = row[ix];

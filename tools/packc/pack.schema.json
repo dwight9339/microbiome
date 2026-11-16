@@ -64,6 +64,23 @@
         }
       }
     },
+    "motion": {
+      "type": "object",
+      "description": "Moving scenery such as water: rows of a layer ripple sideways inside a mask.",
+      "maxProperties": 8,
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["layer", "mask"],
+        "properties": {
+          "layer": { "type": "string", "description": "The layer that moves (not a repeat_x one)." },
+          "mask": { "type": "string", "description": "Same size as the layer's image; brightness is how much each pixel moves, black is still." },
+          "amp": { "type": "integer", "minimum": 1, "maximum": 255, "default": 1, "description": "Shift at full brightness, px." },
+          "period": { "$ref": "#/$defs/duration", "description": "Time for one wave to pass a row (default 3s)." },
+          "wavelength": { "type": "integer", "minimum": 1, "maximum": 65535, "default": 8, "description": "Rows per wave." }
+        }
+      }
+    },
     "actors": {
       "type": "object",
       "description": "Animal definitions.",

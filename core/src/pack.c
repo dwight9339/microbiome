@@ -27,6 +27,7 @@ static const uint32_t k_elem_size[MB_SEC_COUNT] = {
     [MB_SEC_PARTICLES] = sizeof(mb_pk_particle_t),
     [MB_SEC_OBSTACLES] = sizeof(mb_pk_obstacle_t),
     [MB_SEC_OCCLUDERS] = sizeof(mb_pk_occluder_t),
+    [MB_SEC_MOTIONS]   = sizeof(mb_pk_motion_t),
     [MB_SEC_BLOB]      = 1,
     [MB_SEC_STRINGS]   = 1,
 };
@@ -66,6 +67,7 @@ static mb_err_t validate(const mb_engine_t *e) {
     CHECK(e->n_psys <= MB_MAX_PSYS, MB_ERR_CAPACITY);
     CHECK(e->n_obstacles <= MB_MAX_OBSTACLES, MB_ERR_CAPACITY);
     CHECK(e->n_occluders <= MB_MAX_OCCLUDERS, MB_ERR_CAPACITY);
+    CHECK(e->n_motions <= MB_MAX_MOTIONS, MB_ERR_CAPACITY);
     CHECK(e->world->width > 0 && e->world->height > 0, MB_ERR_BAD_SECTION);
 
     for (uint32_t i = 0; i < e->n_images; i++) {
@@ -153,6 +155,15 @@ static mb_err_t validate(const mb_engine_t *e) {
         CHECK(oc->image < e->n_images && str_ok(e, oc->name_str), MB_ERR_BAD_INDEX);
         CHECK(e->n_lanes >= 16 || (oc->lane_mask >> e->n_lanes) == 0, MB_ERR_BAD_INDEX);
     }
+    for (uint32_t i = 0; i < e->n_motions; i++) {
+        const mb_pk_motion_t *m = &e->motions[i];
+        CHECK(m->image < e->n_images && m->layer < e->n_layers && str_ok(e, m->name_str), MB_ERR_BAD_INDEX);
+        CHECK(m->period_ms > 0 && m->wavelength > 0, MB_ERR_BAD_SECTION);
+        const mb_pk_layer_t *l = &e->layers[m->layer];
+        CHECK(!(l->flags & MB_LAYER_REPEAT_X), MB_ERR_BAD_SECTION);
+        const mb_pk_image_t *li = &e->images[l->image], *mi = &e->images[m->image];
+        CHECK(m->x >= 0 && m->y >= 0 && m->x + mi->w <= li->w && m->y + mi->h <= li->h, MB_ERR_BAD_INDEX);
+    }
     for (uint32_t i = 0; i < e->n_palettes; i++)
         CHECK(e->palettes[i].minute < 1440, MB_ERR_BAD_SECTION);
     return MB_OK;
@@ -200,6 +211,7 @@ mb_err_t mb_pack_bind(mb_engine_t *e, const void *pack, size_t size) {
     e->psys = sec[MB_SEC_PARTICLES];        e->n_psys = cnt[MB_SEC_PARTICLES];
     e->obstacles = sec[MB_SEC_OBSTACLES];   e->n_obstacles = cnt[MB_SEC_OBSTACLES];
     e->occluders = sec[MB_SEC_OCCLUDERS];   e->n_occluders = cnt[MB_SEC_OCCLUDERS];
+    e->motions = sec[MB_SEC_MOTIONS];       e->n_motions = cnt[MB_SEC_MOTIONS];
     e->blob = sec[MB_SEC_BLOB];             e->blob_size = cnt[MB_SEC_BLOB];
     e->strings = sec[MB_SEC_STRINGS];       e->strings_size = cnt[MB_SEC_STRINGS];
     return validate(e);
