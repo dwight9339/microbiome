@@ -137,8 +137,12 @@ jobs:
         run: |
           cmake -S platform/rp2350 -B build-rp2350-ili9341 -G Ninja -DMB_BOARD_CONFIG=boards/ili9341_32.h
           cmake --build build-rp2350-ili9341
+      - name: Build (Feather RP2350 prototype 1)
+        run: |
+          cmake -S platform/rp2350 -B build-feather -G Ninja -DPICO_BOARD=adafruit_feather_rp2350 -DMB_BOARD_CONFIG=boards/feather_proto1.h
+          cmake --build build-feather
       - name: Size
-        run: arm-none-eabi-size build-rp2350/microbiome.elf build-rp2350-rtc/microbiome.elf build-rp2350-ili9341/microbiome.elf
+        run: arm-none-eabi-size build-rp2350/microbiome.elf build-rp2350-rtc/microbiome.elf build-rp2350-ili9341/microbiome.elf build-feather/microbiome.elf build-feather/microbiome_loadtest.elf
       - name: Upload firmware
         uses: actions/upload-artifact@v4
         with:
@@ -147,3 +151,5 @@ jobs:
             build-rp2350/microbiome.uf2
             build-rp2350-rtc/microbiome.uf2
             build-rp2350-ili9341/microbiome.uf2
+            build-feather/microbiome.uf2
+            build-feather/microbiome_loadtest.uf2

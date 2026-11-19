@@ -167,6 +167,11 @@ static void render_frame(void) {
 
 int main(void) {
     stdio_init_all();
+    if (AMP_PIN_SD >= 0) { /* no audio yet: keep the amp in shutdown */
+        gpio_init(AMP_PIN_SD);
+        gpio_set_dir(AMP_PIN_SD, GPIO_OUT);
+        gpio_put(AMP_PIN_SD, 0);
+    }
     buttons_init();
     lcd_init();
 

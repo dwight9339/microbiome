@@ -35,7 +35,7 @@ The listed Feather variant includes **8 MB external QSPI flash** (versus 4 MB on
 
 ## Battery and power details to validate
 
-The official Feather documentation states a **3.3 V regulator rated 500 mA peak**, but warns it should not be operated continuously at that peak when fed from USB. Measure actual current on USB and battery with TFT backlight at maximum, and verify thermal behavior and usable battery runtime. TFT breakout boards differ in regulator/backlight wiring; confirm the specific module supports the intended 3.3 V signals and supply. Do **not** power a 5 V-only module directly from an arbitrary pin.
+The official Feather documentation states a **3.3 V regulator rated 500 mA peak**, but warns it should not be operated continuously at that peak when fed from USB. Measure actual current on USB and battery with TFT backlight at maximum, and verify thermal behavior and usable battery runtime. Procedure, load-test firmware and results: [3V3 rail load test](3v3-load-test.md). TFT breakout boards differ in regulator/backlight wiring; confirm the specific module supports the intended 3.3 V signals and supply. Do **not** power a 5 V-only module directly from an arbitrary pin.
 
 - Battery must have the correct chemistry, protection, size and JST polarity for the Feather's charger; never connect alkaline, NiMH, a multi-cell pack or a reversed JST. Select a cell appropriate for the Feather's charge current and leave safe space/strain relief in the enclosure.
 - Use the Feather's USB-C and charger, not an added parallel charger. Test USB-only, battery-only, charging while the display runs, unplug/replug behavior and off-state.
