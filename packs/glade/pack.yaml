@@ -1,12 +1,17 @@
 # Glade - the forest animals in a painted lakeside clearing.
 #
-# The scene is one painted image (src/scene.png). prepare_art.py reduces it
-# to 200 colours, splits out the open sky, and copies the foliage marked in
-# src/front_mask.png into a layer over the animals; re-run it after changing
-# either source. The animal sprites are still the placeholders from packs/forest.
+# The scene is one painted image (src/scene.png). make_palette.py builds
+# palette.gpl from it: 176 scene colours, ramps for the animals, and the fx
+# colours named below. prepare_art.py maps the painting onto that palette,
+# splits out the open sky, and copies the foliage marked in src/front_mask.png
+# into a layer over the animals; re-run both after changing the painting.
+# The animal sprites are still the placeholders from packs/forest, snapped to
+# the palette. New sprites: draw with palette.gpl loaded in Aseprite, or run
+# tools/palette.py snap on them.
 # Schema reference: docs/pack-format.md
 
 name: Glade
+palette: palette.gpl         # packc rejects any colour not in it
 
 world:
   size: [480, 240]           # the painting's size; a 320x240 screen pans 160 px

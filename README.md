@@ -185,6 +185,7 @@ solid colour) and `run` (resume).
 | `tools/packc/packc.py` | Pack compiler: YAML + PNG → `.mbp`. |
 | `tools/packc/pack.schema.json` | JSON Schema for `pack.yaml` (editor autocomplete, studio forms); `check_schema.py` validates against it. |
 | `tools/placeholder_art.py` | Generates the current placeholder forest art. |
+| `tools/palette.py` | Pack palettes (`.gpl`, opens in Aseprite): snap art onto one, preview, check. |
 | `packs/forest/` | The forest pack. |
 | `packs/glade/` | The forest animals in a painted lakeside clearing (`./build/mbsim build/glade.mbp`; firmware: `-DMB_PACK=glade`). |
 | `platform/sdl/` | Desktop simulator with hot reload. |
