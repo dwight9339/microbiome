@@ -355,6 +355,11 @@ static void enter_stage(int n) {
 
 #define SCRATCH_MAGIC 0x4C4F4144u /* "LOAD" */
 
+/* Pico SDK 2.1 calls this bit ..._RSM_, later versions ..._PSM_. */
+#ifndef POWMAN_CHIP_RESET_HAD_WATCHDOG_RESET_PSM_BITS
+#define POWMAN_CHIP_RESET_HAD_WATCHDOG_RESET_PSM_BITS POWMAN_CHIP_RESET_HAD_WATCHDOG_RESET_RSM_BITS
+#endif
+
 static void print_reset_cause(void) {
     uint32_t r = powman_hw->chip_reset;
     printf("last reset:");
