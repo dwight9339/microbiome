@@ -110,6 +110,14 @@
 #define RTC_PIN_SCL    9
 #endif
 
+/* ---- audio (PWM into a class-D amp; -1 = not fitted) -------------------- */
+#ifndef AUDIO_PIN_PWM
+#define AUDIO_PIN_PWM  (-1)
+#endif
+#ifndef AMP_PIN_SD
+#define AMP_PIN_SD     (-1) /* amp shutdown, active low */
+#endif
+
 /* ---- timing ------------------------------------------------------------- */
 #ifndef TARGET_FRAME_MS
 #define TARGET_FRAME_MS 33  /* ~30 fps cap; the SPI link is the real limit */
