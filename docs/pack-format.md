@@ -104,9 +104,13 @@ Aseprite and GIMP both open `.gpl` files. `tools/palette.py` works with them:
 - `preview PALETTE OUT.png` draws the swatches, one row per ramp.
 - `check PALETTE IMAGE...` lists off-palette colours.
 
+For whole sprites made from reference art (a generated picture, a painting),
+`tools/sprite_from_ref.py` also removes the backdrop, crops, scales into the
+cell and lays out frames; [art-workflow.md](art-workflow.md) walks through it.
+
 By convention entries are named `<group>/<ramp>` (`scene/olive`,
 `animal/fox`), and each ramp runs dark to light so shades sit side by side.
-`--groups` filters on the part before the slash. `packs/glade/make_palette.py`
+`--groups` filters on the part before the slash, or on a whole entry name. `packs/glade/make_palette.py`
 shows how to build one from a painted background.
 
 ## world

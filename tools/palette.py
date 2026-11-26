@@ -14,7 +14,8 @@ first, so picking shades in Aseprite is a matter of stepping left or right.
   snap     maps every opaque pixel to the nearest palette colour (judged in
            OKLab, so "nearest" means nearest to the eye), hardens alpha to the
            engine's on/off rule (>= 128 opaque), and writes the result. Use
-           --groups to restrict it, e.g. a sprite to the animal and fx ramps.
+           --groups to restrict it to groups or single ramps, e.g. a sprite to
+           animal,fx or to animal/deer,animal/cream,animal/ink.
   preview  draws the palette as swatches, one row per ramp.
   check    lists colours in images that are not in the palette.
 
@@ -89,13 +90,14 @@ def parse_hex(s: str) -> tuple:
 
 
 def select(entries: list[Entry], groups=None) -> list[Entry]:
+    """The entries in any of `groups`: whole groups (animal) or single ramps (animal/deer)."""
     if not groups:
         return list(entries)
-    keep = [e for e in entries if e.group in groups]
-    if not keep:
-        have = sorted({e.group for e in entries})
-        raise ValueError(f"no palette entries in group(s) {', '.join(groups)} (have: {', '.join(have)})")
-    return keep
+    have = {e.group for e in entries} | {e.ramp for e in entries}
+    unknown = [g for g in groups if g not in have]
+    if unknown:
+        raise ValueError(f"no palette entries in {', '.join(unknown)} (have: {', '.join(sorted(have - {''}))})")
+    return [e for e in entries if e.group in groups or e.ramp in groups]
 
 
 # ---- colour maths (OKLab, https://bottosson.github.io/posts/oklab/) ------------
@@ -290,7 +292,7 @@ def main(argv=None) -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     s = sub.add_parser("snap", help="map an image onto the palette")
     s.add_argument("palette"), s.add_argument("input"), s.add_argument("output")
-    s.add_argument("--groups", help="comma-separated groups to use (default: all)")
+    s.add_argument("--groups", help="comma-separated groups or ramps to use (default: all)")
     p = sub.add_parser("preview", help="draw the palette as swatches")
     p.add_argument("palette"), p.add_argument("output")
     p.add_argument("--scale", type=int, default=16)
@@ -301,7 +303,11 @@ def main(argv=None) -> int:
     entries = read_gpl(a.palette)
     if a.cmd == "snap":
         groups = [g.strip() for g in a.groups.split(",")] if a.groups else None
-        out = snap(Image.open(a.input), select(entries, groups))
+        try:
+            entries = select(entries, groups)
+        except ValueError as e:
+            raise SystemExit(f"--groups: {e}") from None
+        out = snap(Image.open(a.input), entries)
         out.save(a.output)
         n = sum(1 for _, px in out.getcolors(1 << 24) if px[3])
         print(f"{a.output}: {out.size[0]}x{out.size[1]}, {n} colours")

@@ -186,6 +186,7 @@ solid colour) and `run` (resume).
 | `tools/packc/pack.schema.json` | JSON Schema for `pack.yaml` (editor autocomplete, studio forms); `check_schema.py` validates against it. |
 | `tools/placeholder_art.py` | Generates the current placeholder forest art. |
 | `tools/palette.py` | Pack palettes (`.gpl`, opens in Aseprite): snap art onto one, preview, check. |
+| `tools/sprite_from_ref.py` | Reference art (generated, painted) → palette-locked sprite frames to finish in Aseprite. See `docs/art-workflow.md`. |
 | `packs/forest/` | The forest pack. |
 | `packs/glade/` | The forest animals in a painted lakeside clearing (`./build/mbsim build/glade.mbp`; firmware: `-DMB_PACK=glade`). |
 | `platform/sdl/` | Desktop simulator with hot reload. |
@@ -194,6 +195,7 @@ solid colour) and `run` (resume).
 | `platform/rp2350/` | Pico 2 firmware: ST7789/ILI9341 DMA driver, board configs, buttons, optional DS3231, serial console. |
 | `docs/architecture.md` | How the engine works and how to port it. |
 | `docs/pack-format.md` | Writing packs: the YAML schema, behaviours, and art requirements. |
+| `docs/art-workflow.md` | Making animal sprites: generate a reference, convert it, finish it in Aseprite. |
 | `docs/studio.md` | Plan for microbiome Studio, a desktop/browser scene editor. |
 
 ## Product vision and roadmaps

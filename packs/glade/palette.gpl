@@ -2,7 +2,7 @@ GIMP Palette
 Name: Glade
 Columns: 16
 #
-# Glade pack palette: 217 of 255 colours, 38 free.
+# Glade pack palette: 218 of 255 colours, 37 free.
 # Groups: scene (from src/scene.png) and fx (from pack.yaml) are rewritten by
 # make_palette.py; animal and any other groups are kept. Names are <group>/<ramp>,
 # and each ramp runs dark to light.
@@ -201,6 +201,7 @@ Columns: 16
  74  48  32	animal/deer
 110  74  42	animal/deer
 154 106  62	animal/deer
+173 118  67	animal/deer
 196 154 108	animal/deer
 224 196 156	animal/deer
  58  50  44	animal/rabbit

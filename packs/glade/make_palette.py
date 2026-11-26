@@ -35,7 +35,7 @@ ANIMAL_RAMPS = {
     "ink":      ["#120e0c", "#1a1e22", "#231e1a"],          # eyes, noses, shadow-side outline
     "cream":    ["#b8b0a2", "#d9d3c6", "#f2efe6", "#ffffff"],  # tails, chests, eye glints
     "fox":      ["#2e140a", "#5c2410", "#8a3f10", "#b4541a", "#d2691e", "#e88a3c", "#f2ad6a"],
-    "deer":     ["#2b1c12", "#4a3020", "#6e4a2a", "#9a6a3e", "#c49a6c", "#e0c49c"],
+    "deer":     ["#2b1c12", "#4a3020", "#6e4a2a", "#9a6a3e", "#ad7643", "#c49a6c", "#e0c49c"],
     "rabbit":   ["#3a322c", "#5e5348", "#8c7b6a", "#b3a593", "#d4c9b8"],
     "owl":      ["#2c241c", "#4f3e2c", "#7a5c3a", "#9a7a54", "#b39470", "#d6bf98"],
     "bird-red": ["#5a1a12", "#9a2c1e", "#d9583b", "#f08a62"],
