@@ -73,6 +73,10 @@ add_test(NAME render_rgb565_be
          COMMAND mbsnap ${CMAKE_BINARY_DIR}/forest.mbp ${CMAKE_BINARY_DIR}/test-565.png --rgb565 --time 07:00)
 add_test(NAME render_odd_display
          COMMAND mbsnap ${CMAKE_BINARY_DIR}/forest.mbp ${CMAKE_BINARY_DIR}/test-480.png --size 480x480)
+# Reference art -> palette-locked sprite (tools/sprite_from_ref.py), on faked
+# generator output with a known answer.
+add_test(NAME sprite_from_ref
+         COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/test_sprite_from_ref.py)
 # pack.yaml against the JSON Schema (editors, studio). Optional: needs jsonschema.
 execute_process(COMMAND ${Python3_EXECUTABLE} -c "import jsonschema"
                 RESULT_VARIABLE _mb_no_jsonschema OUTPUT_QUIET ERROR_QUIET)

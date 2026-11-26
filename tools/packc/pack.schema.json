@@ -8,6 +8,11 @@
   "required": ["world"],
   "properties": {
     "name": { "type": "string", "description": "Display name of the pack." },
+    "palette": {
+      "type": "string",
+      "pattern": "\\.gpl$",
+      "description": "A GIMP palette (.gpl, which Aseprite opens) relative to the pack. When set, every image, particle and clear colour must be one of its colours. Occlusion and motion masks are exempt."
+    },
     "world": { "$ref": "#/$defs/world" },
     "clock": { "$ref": "#/$defs/clock" },
     "vars": {

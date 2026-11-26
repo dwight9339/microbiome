@@ -41,7 +41,8 @@ These are the rules to give an artist, human or agent:
 - **PNG, RGBA.** Alpha ≥ 128 is opaque; anything lower is transparent. There
   is no partial transparency, so avoid anti-aliased edges against transparency.
 - **≤ 255 distinct colours across the whole pack**, shared by every image.
-  Working from a fixed palette makes this easy. The forest placeholder uses
+  Working from a fixed palette makes this easy: give the pack a `palette:`
+  (below) and draw with it loaded in Aseprite. The forest placeholder uses
   48 colours.
 - **Draw for daylight.** Dawn, dusk and night are generated from `lighting`
   keyframes. Colours listed as `emissive` (eyes, fireflies, windows) keep their
@@ -62,6 +63,7 @@ These are the rules to give an artist, human or agent:
 
 ```yaml
 name: Forest
+palette:   palette.gpl   # optional
 world:     {...}
 clock:     {...}
 vars:      {...}
@@ -80,6 +82,36 @@ particles: {...}
 **Durations** accept `500ms`, `4s`, `2m`, `1.5h` or a bare number of seconds.
 **Times of day** are `"HH:MM"`. Quote them, because YAML has opinions about colons.
 **Ranges** are `[min, max]` or a single value.
+
+## palette
+
+```yaml
+palette: palette.gpl    # a GIMP palette, relative to the pack
+```
+
+Optional. When set, every image, particle colour and `clear_color` must use
+only colours from this file, and `packc` names the image, colour and first
+pixel of anything that doesn't. Occlusion and motion masks are exempt, since
+they are never drawn: their colours label objects or set weights. Without it,
+any colours are accepted up to the 255 limit.
+
+Aseprite and GIMP both open `.gpl` files. `tools/palette.py` works with them:
+
+- `snap PALETTE IN.png OUT.png [--groups animal,fx]` maps an image onto the
+  palette, choosing each pixel's nearest colour as the eye sees it (OKLab),
+  and makes every pixel fully opaque or fully transparent. Use it on
+  generated or painted art before cleaning it up by hand.
+- `preview PALETTE OUT.png` draws the swatches, one row per ramp.
+- `check PALETTE IMAGE...` lists off-palette colours.
+
+For whole sprites made from reference art (a generated picture, a painting),
+`tools/sprite_from_ref.py` also removes the backdrop, crops, scales into the
+cell and lays out frames; [art-workflow.md](art-workflow.md) walks through it.
+
+By convention entries are named `<group>/<ramp>` (`scene/olive`,
+`animal/fox`), and each ramp runs dark to light so shades sit side by side.
+`--groups` filters on the part before the slash, or on a whole entry name. `packs/glade/make_palette.py`
+shows how to build one from a painted background.
 
 ## world
 

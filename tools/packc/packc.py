@@ -204,6 +204,8 @@ class Builder:
         self._str_index = {"": 0}
         self.blob = bytearray()
         self.palette: dict[tuple, int] = {}  # rgb -> index (1..255)
+        self.allowed: set | None = None        # colours of `palette:` (.gpl), if the pack fixes one
+        self.allowed_from = ""
         self.images: list[tuple] = []
         self._image_index: dict[str, int] = {}
         self.rows = {k: [] for k in SECTIONS if k not in ("blob", "strings")}
@@ -229,8 +231,41 @@ class Builder:
         self.blob += data
         return off
 
+    def load_palette(self, rel):
+        """`palette: <file>.gpl`: every colour in the pack must come from it."""
+        if rel is None:
+            return
+        path = os.path.join(self.root, str(rel))
+        self.inputs.add(path)
+        try:
+            with open(path, encoding="utf-8") as f:
+                lines = f.read().splitlines()
+        except OSError as exc:
+            fail("palette", f"cannot read {rel!r}: {exc}")
+        if not lines or lines[0].strip() != "GIMP Palette":
+            fail("palette", f"{rel} is not a GIMP palette (.gpl): first line must be 'GIMP Palette'")
+        allowed = set()
+        for n, line in enumerate(lines[1:], 2):
+            parts = line.split()
+            if not parts or parts[0].startswith("#") or parts[0].endswith(":"):
+                continue
+            try:
+                rgb = tuple(int(v) for v in parts[:3])
+            except ValueError:
+                fail("palette", f"{rel}:{n}: expected 'R G B name', got {line.strip()!r}")
+            if len(rgb) != 3 or not all(0 <= v <= 255 for v in rgb):
+                fail("palette", f"{rel}:{n}: bad colour {line.strip()!r}")
+            allowed.add(rgb)
+        if not allowed:
+            fail("palette", f"{rel} has no colours")
+        if len(allowed) > 255:
+            fail("palette", f"{rel} has {len(allowed)} colours; the engine holds 255")
+        self.allowed, self.allowed_from = allowed, str(rel)
+
     def color_index(self, rgb, where) -> int:
         rgb = tuple(int(c) for c in rgb[:3])
+        if self.allowed is not None and rgb not in self.allowed:
+            fail(where, "#%02x%02x%02x is not in %s" % (*rgb, self.allowed_from))
         if rgb not in self.palette:
             if len(self.palette) >= 255:
                 fail(where, "more than 255 distinct colours across the pack; reduce the palette")
@@ -264,11 +299,21 @@ class Builder:
             fail(where, f"{rel} is too large")
         px = im.load()
         data = bytearray(w * h)
+        off: dict[tuple, tuple] = {}  # off-palette colour -> its first pixel
         for y in range(h):
             for x in range(w):
                 r, g, b, a = px[x, y]
                 if a >= 128:
+                    if self.allowed is not None and (r, g, b) not in self.allowed:
+                        off.setdefault((r, g, b), (x, y))
+                        continue
                     data[y * w + x] = self.color_index((r, g, b), f"{where} ({rel})")
+        if off:
+            shown = ", ".join("#%02x%02x%02x at (%d, %d)" % (*c, *xy) for c, xy in list(off.items())[:4])
+            more = f" and {len(off) - 4} more" if len(off) > 4 else ""
+            noun = "colour" if len(off) == 1 else "colours"
+            fail(f"{where} ({rel})", f"{len(off)} {noun} not in {self.allowed_from}: {shown}{more}. "
+                 f"Fix with: python3 tools/palette.py snap <palette> <in.png> <out.png>")
         off = self.blob_add(bytes(data))
         idx = len(self.rows["images"])
         self.rows["images"].append((w, h, off))
@@ -677,6 +722,7 @@ class Builder:
         if not isinstance(spec, dict):
             fail("pack.yaml", "top level must be a mapping")
         world = spec.get("world") or {}
+        self.load_palette(spec.get("palette"))
         self.build_vars(spec.get("vars"))
         self.build_layers(spec.get("layers"))
         self.build_motion(spec.get("motion"))
@@ -801,6 +847,8 @@ class Builder:
         for rgb, idx in self.palette.items():
             base[idx] = rgb
         emissive = {parse_color(c, "lighting.emissive") for c in lighting.get("emissive", [])}
+        for rgb in sorted(emissive - set(self.palette)):
+            self.warnings.append("lighting.emissive: #%02x%02x%02x is not used by any image or particle" % rgb)
         kfs = lighting.get("keyframes") or [{"at": "00:00"}]
         out = []
         for i, kf in enumerate(kfs):

@@ -1,12 +1,17 @@
 # Glade - the forest animals in a painted lakeside clearing.
 #
-# The scene is one painted image (src/scene.png). prepare_art.py reduces it
-# to 200 colours, splits out the open sky, and copies the foliage marked in
-# src/front_mask.png into a layer over the animals; re-run it after changing
-# either source. The animal sprites are still the placeholders from packs/forest.
+# The scene is one painted image (src/scene.png). make_palette.py builds
+# palette.gpl from it: 176 scene colours, ramps for the animals, and the fx
+# colours named below. prepare_art.py maps the painting onto that palette,
+# splits out the open sky, and copies the foliage marked in src/front_mask.png
+# into a layer over the animals; re-run both after changing the painting.
+# The animal sprites are still the placeholders from packs/forest, snapped to
+# the palette. New sprites: draw with palette.gpl loaded in Aseprite, or run
+# tools/palette.py snap on them.
 # Schema reference: docs/pack-format.md
 
 name: Glade
+palette: palette.gpl         # packc rejects any colour not in it
 
 world:
   size: [480, 240]           # the painting's size; a 320x240 screen pans 160 px
@@ -75,9 +80,10 @@ motion:
   lake: {layer: scene, mask: art/water.png, amp: 1, period: 3s, wavelength: 8}
 
 # Bands of y (feet position) actors move within. The ground lane is the
-# clearing, from the back tree line down to the foreground foliage.
+# clearing, down to the foreground foliage. Nothing shrinks with distance, so it
+# stops short of the back tree line (about 124), where a deer would look huge.
 lanes:
-  ground: [124, 232]
+  ground: [145, 232]
   sky:    [14, 80]
 
 # Points of interest and what they offer, in world (= painting) pixels.
@@ -163,25 +169,6 @@ actors:
     despawn_when: {phase: night}
     lifetime: 4m
 
-  fox:
-    sheet: art/fox.png
-    frame: [32, 24]
-    tags: [predator]
-    lane: ground
-    speed: 24
-    anims:
-      trot:  {frames: 0-3, fps: 8}
-      sniff: {frames: 4-5, frame: 400ms}
-    states:
-      trot:  {anim: trot, move: wander, duration: [5s, 12s], next: {sniff: 2, trot: 2, drink: 1}}
-      sniff: {anim: sniff, duration: [2s, 6s], next: trot}
-      drink: {anim: trot, move: seek drink, next: lap}
-      lap:   {anim: sniff, duration: [3s, 6s], next: trot}
-      leave: {anim: trot, move: exit}
-    leave: leave
-    despawn_when: {phase: day}
-    lifetime: 5m
-
   owl:
     sheet: art/owl.png
     frame: [16, 16]
@@ -231,7 +218,6 @@ actors:
 spawns:
   - {actor: deer,     when: {phase: [dawn, day, dusk]}, weight: 3, max: 2, count: [1, 2], cooldown: 90s}
   - {actor: rabbit,   when: {phase: [dawn, day, dusk]}, weight: 4, max: 3, count: [1, 2], cooldown: 30s, enter: place burrow}
-  - {actor: fox,      when: {phase: [dusk, night, dawn]}, weight: 2, max: 1, cooldown: 3m}
   - {actor: owl,      when: {phase: night}, weight: 2, max: 1, cooldown: 5m}
   - {actor: songbird, when: {phase: [dawn, day], weather: [clear, cloudy]}, weight: 3, max: 4, count: [2, 4], cooldown: 60s}
 

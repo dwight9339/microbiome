@@ -6,9 +6,10 @@
 The source is one flat 480x240 image with ~85k colours. The engine needs
 <= 255 colours across the whole pack, and stars must show only through gaps
 in the canopy, so this:
-  - reduces the scene to SCENE_COLOURS colours (median cut + k-means, no
-    dithering, which keeps pixel edges clean), leaving the rest of the
-    palette for sprites and particles;
+  - maps the scene onto the "scene" colours of palette.gpl (no dithering,
+    which keeps pixel edges clean). make_palette.py picks those colours from
+    the same painting and leaves the rest of the palette for sprites and
+    particles;
   - moves the open sky into art/sky.png and leaves it transparent in
     art/scene.png, so particles drawn "above: sky" sit behind the trees;
   - copies the pixels marked white in src/front_mask.png (the foliage and
@@ -16,15 +17,19 @@ in the canopy, so this:
     the animals. They stay in art/scene.png too, so nothing shows through.
     Only rows from FRONT_TOP down are kept: the layer sits at
     `at: [0, FRONT_TOP]` in pack.yaml.
-Re-run it whenever src/scene.png or src/front_mask.png changes. The mask is
-hand-editable: paint white what should cover animals, black elsewhere.
+Re-run it whenever src/scene.png or src/front_mask.png changes; if the
+painting changed, run make_palette.py first. The mask is hand-editable:
+paint white what should cover animals, black elsewhere.
 """
 import os
+import sys
 
 from PIL import Image
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SCENE_COLOURS = 200
+sys.path.insert(0, os.path.join(HERE, "..", "..", "tools"))
+import palette  # noqa: E402
+
 SKY_MAX_Y = 70  # open sky only appears above this row
 FRONT_TOP = 150  # first row of art/front.png; must match its `at:` in pack.yaml
 
@@ -37,8 +42,8 @@ def is_sky(r, g, b):
 def main():
     src = Image.open(os.path.join(HERE, "src", "scene.png")).convert("RGB")
     w, h = src.size
-    pal = src.quantize(colors=SCENE_COLOURS, method=Image.Quantize.MEDIANCUT, kmeans=8,
-                       dither=Image.Dither.NONE).convert("RGB")
+    scene_cols = palette.select(palette.read_gpl(os.path.join(HERE, "palette.gpl")), ["scene"])
+    pal = palette.remap_fast(src, scene_cols)
     sky = Image.new("RGBA", (w, SKY_MAX_Y), (0, 0, 0, 0))
     scene = pal.convert("RGBA")
     sp, qp, cp = src.load(), pal.load(), scene.load()
@@ -66,7 +71,7 @@ def main():
     scene.save(os.path.join(HERE, "art", "scene.png"))
     front.save(os.path.join(HERE, "art", "front.png"))
     print(f"art/scene.png {w}x{h}, art/sky.png {w}x{SKY_MAX_Y}, art/front.png {w}x{h - FRONT_TOP} "
-          f"at y={FRONT_TOP}, {SCENE_COLOURS} colours")
+          f"at y={FRONT_TOP}, {len(pal.getcolors(1 << 24))} of {len(scene_cols)} scene colours used")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,227 @@
+GIMP Palette
+Name: Glade
+Columns: 16
+#
+# Glade pack palette: 218 of 255 colours, 37 free.
+# Groups: scene (from src/scene.png) and fx (from pack.yaml) are rewritten by
+# make_palette.py; animal and any other groups are kept. Names are <group>/<ramp>,
+# and each ramp runs dark to light.
+#
+ 56  44  32	scene/brown-muted
+ 64  50  37	scene/brown-muted
+ 71  54  41	scene/brown-muted
+ 75  53  35	scene/brown-muted
+ 78  60  43	scene/brown-muted
+ 86  62  41	scene/brown-muted
+ 82  70  51	scene/brown-muted
+ 93  69  46	scene/brown-muted
+ 94  78  55	scene/brown-muted
+113  89  61	scene/brown-muted
+102  76  50	scene/brown
+106  82  54	scene/brown
+113  85  55	scene/brown
+119  92  59	scene/brown
+126  98  63	scene/brown
+137 105  66	scene/brown
+149 115  67	scene/brown
+164 125  72	scene/brown
+178 137  76	scene/brown
+191 150  82	scene/brown
+ 68  61  33	scene/gold-muted
+ 96  88  69	scene/gold-muted
+ 99  95  82	scene/gold-muted
+113 104  83	scene/gold-muted
+126 116  95	scene/gold-muted
+143 131 103	scene/gold-muted
+175 165 133	scene/gold-muted
+ 80  72  37	scene/gold
+ 91  81  41	scene/gold
+100  89  47	scene/gold
+111  98  53	scene/gold
+122 109  56	scene/gold
+162 150 117	scene/gold
+ 29  37  14	scene/olive-1
+ 35  45  26	scene/olive-1
+ 42  49  17	scene/olive-1
+ 43  55  31	scene/olive-1
+ 53  59  28	scene/olive-1
+ 53  68  40	scene/olive-1
+ 64  64  48	scene/olive-1
+ 65  76  38	scene/olive-1
+ 70  81  47	scene/olive-1
+ 82  93  57	scene/olive-1
+ 52  58  18	scene/olive-2
+ 60  67  23	scene/olive-2
+ 68  74  25	scene/olive-2
+ 75  81  28	scene/olive-2
+ 81  87  32	scene/olive-2
+ 80  89  44	scene/olive-2
+ 91 101  53	scene/olive-2
+ 94 109  66	scene/olive-2
+103 127  83	scene/olive-2
+147 168 124	scene/olive-2
+ 89  95  32	scene/olive-3
+ 91  98  40	scene/olive-3
+ 99 105  40	scene/olive-3
+105 109  48	scene/olive-3
+110 120  58	scene/olive-3
+120 131  70	scene/olive-3
+120 142  88	scene/olive-3
+138 155  91	scene/olive-3
+150 163 105	scene/olive-3
+171 176 106	scene/olive-3
+112 115  41	scene/olive-4
+125 127  49	scene/olive-4
+141 139  54	scene/olive-4
+139 145  74	scene/olive-4
+158 152  60	scene/olive-4
+160 161  83	scene/olive-4
+173 165  66	scene/olive-4
+183 174  77	scene/olive-4
+ 68  89  60	scene/green1
+ 85 113  79	scene/green1
+124 149 116	scene/green1
+153 180 143	scene/green1
+ 25  36  29	scene/green-muted
+ 23  42  37	scene/green-muted
+ 31  48  37	scene/green-muted
+ 27  52  46	scene/green-muted
+ 36  56  42	scene/green-muted
+ 31  59  53	scene/green-muted
+ 52  83  76	scene/green-muted
+ 58  91  82	scene/green-muted
+159 191 175	scene/green-muted
+177 205 196	scene/green-muted
+ 41  66  49	scene/green2
+ 43  74  57	scene/green2
+ 58  89  70	scene/green2
+ 61  98  90	scene/green2
+ 71 105  88	scene/green2
+ 83 125 114	scene/green2
+ 93 133 120	scene/green2
+135 169 147	scene/green2
+141 176 158	scene/green2
+150 185 169	scene/green2
+ 53  81  57	scene/green-vivid
+ 70  99  74	scene/green-vivid
+ 75 117 104	scene/green-vivid
+ 86 119  95	scene/green-vivid
+ 92 130 104	scene/green-vivid
+107 137 108	scene/green-vivid
+101 142 127	scene/green-vivid
+123 160 140	scene/green-vivid
+ 12  28  28	scene/teal-1
+ 16  31  30	scene/teal-1
+ 18  36  34	scene/teal-1
+ 17  40  41	scene/teal-1
+ 22  46  44	scene/teal-1
+ 36  66  62	scene/teal-1
+ 86 109 112	scene/teal-1
+ 89 120 123	scene/teal-1
+112 131 129	scene/teal-1
+191 220 224	scene/teal-1
+ 44  75  71	scene/teal-2
+ 47  84  88	scene/teal-2
+ 67 106 101	scene/teal-2
+ 91 131 134	scene/teal-2
+107 145 142	scene/teal-2
+113 155 150	scene/teal-2
+123 163 157	scene/teal-2
+128 171 168	scene/teal-2
+137 180 176	scene/teal-2
+146 187 181	scene/teal-2
+ 66 111 116	scene/teal-3
+ 74 119 123	scene/teal-3
+ 92 139 142	scene/teal-3
+101 149 154	scene/teal-3
+112 158 162	scene/teal-3
+118 165 169	scene/teal-3
+131 178 183	scene/teal-3
+136 185 192	scene/teal-3
+149 199 198	scene/teal-3
+155 202 207	scene/teal-3
+ 77 129 130	scene/teal-4
+ 84 138 137	scene/teal-4
+ 96 146 148	scene/teal-4
+105 154 160	scene/teal-4
+110 162 168	scene/teal-4
+119 170 178	scene/teal-4
+125 174 180	scene/teal-4
+126 180 195	scene/blue
+139 191 205	scene/blue
+164 209 220	scene/blue
+162 216 245	scene/blue
+175 222 247	scene/blue
+196 230 246	scene/blue
+209 234 244	scene/blue
+218 240 248	scene/blue
+ 23  24  21	scene/grey-warm-muted
+ 29  28  25	scene/grey-warm-muted
+ 33  32  30	scene/grey-warm-muted
+ 39  38  35	scene/grey-warm-muted
+ 64  67  62	scene/grey-warm-muted
+ 67  73  69	scene/grey-warm-muted
+103 108 100	scene/grey-warm-muted
+ 40  32  25	scene/grey-warm
+ 47  39  31	scene/grey-warm
+ 51  54  45	scene/grey-warm
+ 79  78  67	scene/grey-warm
+ 85  86  76	scene/grey-warm
+136 144 136	scene/grey-warm
+  8  14  13	scene/grey-cool-muted
+ 16  21  21	scene/grey-cool-muted
+ 16  26  25	scene/grey-cool-muted
+ 23  27  26	scene/grey-cool-muted
+ 30  38  38	scene/grey-cool-muted
+ 39  46  45	scene/grey-cool-muted
+ 44  54  55	scene/grey-cool-muted
+ 54  61  60	scene/grey-cool-muted
+ 11  23  23	scene/grey-cool
+ 55  68  68	scene/grey-cool
+ 66  79  79	scene/grey-cool
+ 73  87  87	scene/grey-cool
+ 81  93  92	scene/grey-cool
+ 89 101  99	scene/grey-cool
+105 118 115	scene/grey-cool
+ 18  14  12	animal/ink
+ 26  30  34	animal/ink
+ 35  30  26	animal/ink
+184 176 162	animal/cream
+217 211 198	animal/cream
+242 239 230	animal/cream
+255 255 255	animal/cream
+ 46  20  10	animal/fox
+ 92  36  16	animal/fox
+138  63  16	animal/fox
+180  84  26	animal/fox
+210 105  30	animal/fox
+232 138  60	animal/fox
+242 173 106	animal/fox
+ 43  28  18	animal/deer
+ 74  48  32	animal/deer
+110  74  42	animal/deer
+154 106  62	animal/deer
+173 118  67	animal/deer
+196 154 108	animal/deer
+224 196 156	animal/deer
+ 58  50  44	animal/rabbit
+ 94  83  72	animal/rabbit
+140 123 106	animal/rabbit
+179 165 147	animal/rabbit
+212 201 184	animal/rabbit
+ 44  36  28	animal/owl
+ 79  62  44	animal/owl
+122  92  58	animal/owl
+154 122  84	animal/owl
+179 148 112	animal/owl
+214 191 152	animal/owl
+ 90  26  18	animal/bird-red
+154  44  30	animal/bird-red
+217  88  59	animal/bird-red
+240 138  98	animal/bird-red
+  0   0   0	fx/clear
+255 233 138	fx/emissive
+255 210  63	fx/emissive
+255 251 224	fx/emissive
+244 248 255	fx/particle-snow
+159 184 208	fx/particle-rain
